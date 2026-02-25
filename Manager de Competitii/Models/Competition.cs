@@ -1,4 +1,4 @@
-﻿namespace ManagerDeCompetitii.Models.Competiton
+﻿namespace Manager_de_Competitii.Models
 {
     public class Competition
     {

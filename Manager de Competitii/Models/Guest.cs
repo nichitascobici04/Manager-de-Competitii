@@ -1,4 +1,4 @@
-﻿namespace ManagerDeCompetitii.Models.Guest
+﻿namespace Manager_de_Competitii.Models
 {
     public class Guest
     {

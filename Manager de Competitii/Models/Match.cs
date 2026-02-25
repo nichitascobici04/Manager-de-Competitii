@@ -1,4 +1,4 @@
-﻿namespace ManagerDeCompetitii.Models.Match
+﻿namespace Manager_de_Competitii.Models
 {
     public class Match
     {

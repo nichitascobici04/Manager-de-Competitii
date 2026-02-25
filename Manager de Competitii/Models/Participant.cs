@@ -1,4 +1,4 @@
-﻿namespace ManagerDeCompetitii.Models.Participant
+﻿namespace Manager_de_Competitii.Models
 {
     public class Participant
     {
