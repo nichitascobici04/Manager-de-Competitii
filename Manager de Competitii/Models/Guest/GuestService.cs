@@ -1,6 +1,7 @@
-﻿using Microsoft.AspNetCore.Identity.Data;
+﻿using Manager_de_Competitii.Models.User;
+using Microsoft.AspNetCore.Identity.Data;
 
-namespace Manager_de_Competitii.Models
+namespace Manager_de_Competitii.Models.Guest
 {
     public class GuestService
     {

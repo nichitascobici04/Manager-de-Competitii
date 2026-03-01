@@ -1,4 +1,6 @@
-﻿namespace Manager_de_Competitii.Models
+﻿using Manager_de_Competitii.Models.MatchSet;
+
+namespace Manager_de_Competitii.Services
 {
     public class StageGenerationService
     {

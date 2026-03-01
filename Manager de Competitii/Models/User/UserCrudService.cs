@@ -1,4 +1,4 @@
-﻿namespace Manager_de_Competitii.Models
+﻿namespace Manager_de_Competitii.Models.User
 {
     public class UserCrudService
     {
@@ -12,7 +12,7 @@
             // Logic to retrieve a user by ID
             return new User();
         }
-        public User UpdateUSer(int UserId)
+        public User UpdateUser(int UserId)
         {
             // Logic to change the username
             return new User();

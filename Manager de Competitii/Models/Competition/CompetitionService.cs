@@ -1,4 +1,4 @@
-﻿namespace Manager_de_Competitii.Models
+﻿namespace Manager_de_Competitii.Models.Competition
 {
     public class CompetitionService
     {
@@ -7,7 +7,7 @@
             // Logic to create a tournament
             return new Competition();
         }
-        public List<MatchSet> CreateStage(List<Participant> Participants)
+        public List<MatchSet> CreateStage(List<Participant> Participants, )
         {
             //...
             return new List<MatchSet>();
