@@ -1,4 +1,6 @@
-﻿namespace Manager_de_Competitii.Models.Competition
+﻿using Manager_de_Competitii.Models.Competition;
+
+namespace Manager_de_Competitii.Services
 {
     public class CompetitionCrudService
     {

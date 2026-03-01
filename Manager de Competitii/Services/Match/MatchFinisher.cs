@@ -1,4 +1,4 @@
-﻿namespace Manager_de_Competitii.Models.Match
+﻿namespace Manager_de_Competitii.Services.Match
 {
     public class MatchFinisher
     {
