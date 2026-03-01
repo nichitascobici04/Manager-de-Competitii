@@ -7,21 +7,20 @@
             // Logic to create a user
             return new User();
         }
-        public void ChangeUsername(int UserId)
+        public User GetUser(int UserId)
+        {
+            // Logic to retrieve a user by ID
+            return new User();
+        }
+        public User UpdateUSer(int UserId)
         {
             // Logic to change the username
-        }
-        public void ChangePassword(int UserId)
-        {
-            // Logic to create the password
+            return new User();
         }
         public void DeleteUser(int UserId)
         {
             // Logic delete the user
         }
-        internal static User GetUser(int UserId)
-        {
-            throw new NotImplementedException();
-        }
+        
     }
 }

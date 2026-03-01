@@ -9,6 +9,5 @@
         public Participant Winner { get; set; }
         public bool IsCompleted { get; set; }
         public bool IsDrawAllowed { get; set; }
-        
     }
 }

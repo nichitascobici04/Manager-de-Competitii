@@ -7,18 +7,19 @@
             // Logic to create a Competition
             return new Competition();
         }
-        public void ChangeName(int CompetitionIderId)
+        public Competition GetCompetition(int CompetitionId)
         {
-            // Logic to change the Competition name
+            // Logic to get the Competition
+            return new Competition();
+        }
+        public void UpdateCompetition(int CompetitionIderId)
+        {
+
+            // Logic to change the Competition 
         }
         public void DeleteCompetition(int CompetitionId)
         {
-            // Logic delete the user
-        }
-        public User GetCompetition(int CompetitionId)
-        {
-            // Logic to get the user
-            return new User();
+            // Logic delete the Competition
         }
     }
 }

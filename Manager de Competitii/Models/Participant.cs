@@ -8,5 +8,10 @@
         public bool IsBye { get; set; }
         public bool IsUser { get; set; }
         public int UserId { get; set; }
+
+        public Participant(string name)
+        {
+            Name = name;
+        }
     }
 }
