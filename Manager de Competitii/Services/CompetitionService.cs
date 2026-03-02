@@ -1,14 +1,9 @@
-﻿using Manager_de_Competitii.Models.Competition;
+﻿using Manager_de_Competitii.Models;
 
 namespace Manager_de_Competitii.Services
 {
     public class CompetitionService
     {
-        public Competition CreateCompetition(string name, int participantCount)
-        {
-            // Logic to create a tournament
-            return new Competition();
-        }
         public List<MatchSet> CreateStage(List<Participant> Participants, )
         {
             //...

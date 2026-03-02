@@ -1,4 +1,4 @@
-﻿using Manager_de_Competitii.Models.Competition;
+﻿using Manager_de_Competitii.Models;
 
 namespace Manager_de_Competitii.Services
 {

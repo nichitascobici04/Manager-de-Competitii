@@ -1,4 +1,4 @@
-﻿namespace Manager_de_Competitii.Models.Participant
+﻿namespace Manager_de_Competitii.Models
 {
     public class Participant
     {
@@ -7,6 +7,6 @@
         public string Name { get; set; }
         public bool IsBye { get; set; }
         public bool IsUser { get; set; }
-        public int? UserId { get; set; }
+        public User? AssociatedUser { get; set; }
     }
 }

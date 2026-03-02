@@ -1,6 +1,5 @@
-﻿using Manager_de_Competitii.Models.Guest;
-using Manager_de_Competitii.Models.User;
-using Microsoft.AspNetCore.Identity.Data;
+﻿using Manager_de_Competitii.Models;
+
 
 namespace Manager_de_Competitii.Services
 {
@@ -14,7 +13,8 @@ namespace Manager_de_Competitii.Services
         public User Login()
         {
             // Logic to log in as a guest
-            return UserCrudService.GetUser();
+            int userId = 0; // This would be obtained from the login process
+            return UserCrudService.GetUser(userId);
         }
     }
 }

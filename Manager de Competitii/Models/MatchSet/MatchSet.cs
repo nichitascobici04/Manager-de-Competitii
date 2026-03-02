@@ -1,6 +1,4 @@
-﻿using System.Security.Cryptography.X509Certificates;
-
-namespace Manager_de_Competitii.Models.MatchSet
+﻿namespace Manager_de_Competitii.Models
 {
     public class MatchSet
     {
