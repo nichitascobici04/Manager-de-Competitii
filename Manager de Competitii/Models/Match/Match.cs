@@ -1,4 +1,4 @@
-﻿namespace Manager_de_Competitii.Models.Match
+﻿namespace Manager_de_Competitii.Models
 {
     public class Match
     {
@@ -9,5 +9,6 @@
         public Participant Winner { get; set; }
         public bool IsCompleted { get; set; }
         public bool IsDrawAllowed { get; set; }
-    }
+        public List<Set> { get; set; }
+}
 }

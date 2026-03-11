@@ -3,11 +3,9 @@
     public class MatchSet
     {
         public int Id { get; set; }
-        public int TournamentId { get; set; }
-        public string Name { get; set; }
-        public int NumberOfParticipants { get; set; }
-        public List<Match> Matches { get; set; }
-        public List<Participant> Participants { get; set; }
-        public List<Participant> Winners { get; set; }
+        public Participant Participant1 { get; set; }
+        public Participant Participant2 { get; set; }
+        public int Score1 { get; set; }
+        public int Score2 { get; set; }
     }
 }
