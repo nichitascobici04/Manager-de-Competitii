@@ -1,4 +1,4 @@
-﻿namespace Manager_de_Competitii.Models.Stage
+﻿namespace Manager_de_Competitii.Models
 {
     public class Stage
     {
