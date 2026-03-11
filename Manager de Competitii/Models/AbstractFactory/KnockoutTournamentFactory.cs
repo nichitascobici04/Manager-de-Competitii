@@ -1,6 +1,6 @@
 ﻿namespace Manager_de_Competitii.Models.AbstractFactory
 {
-    public class KnockoutTournamentFactor : ITournamentFactory
+    public class KnockoutTournamentFactory : ITournamentFactory
     {
         public IFormat CreateFormat()
         {
