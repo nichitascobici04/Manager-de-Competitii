@@ -9,7 +9,7 @@
         public User Organizer { get; set; }
         public List<Participant>? Participants { get; set; }
         public Participant Winner { get; set; }
-        public List<MatchSet>? Stages { get; set; }
+        public List<Stage>? Stages { get; set; }
         public bool IsCompleted { get; set; }
     }
 }
