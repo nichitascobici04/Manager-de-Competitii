@@ -1,4 +1,4 @@
-﻿namespace Manager_de_Competitii.Services.Match
+namespace Manager_de_Competitii.Services.MatchServices
 {
     public class MatchUpdater
     {
