@@ -14,7 +14,7 @@ namespace Manager_de_Competitii.Services
         {
             // Logic to log in as a guest
             int userId = 0; // This would be obtained from the login process
-            return UserCrudService.GetUser(userId);
+            return new UserCrudService().GetUser(userId);
         }
     }
 }

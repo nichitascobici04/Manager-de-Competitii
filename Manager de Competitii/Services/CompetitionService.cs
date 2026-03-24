@@ -4,7 +4,7 @@ namespace Manager_de_Competitii.Services
 {
     public class CompetitionService
     {
-        public List<MatchSet> CreateStage(List<Participant> Participants, )
+        public List<MatchSet> CreateStage(List<Participant> Participants)
         {
             //...
             return new List<MatchSet>();
