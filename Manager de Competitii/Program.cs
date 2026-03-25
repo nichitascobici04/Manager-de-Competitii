@@ -1,3 +1,4 @@
+using Manager_de_Competitii.Models;
 using Manager_de_Competitii.Models.AggregateScoreCalculator;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -50,6 +51,19 @@ seasonTotal.Display(0);
 Console.WriteLine();
 Console.WriteLine("Final Aggregate Score: " + seasonTotal.GetScore() + " puncte");
 Console.WriteLine("=======================================\n");
+#endregion
+
+#region Testare Adapter Pattern
+Console.WriteLine("\n=== Adapter Pattern Test ===");
+// Adaptee
+Participant myParticipant = new Participant { Id = 1, Name = "Team Alpha", IsBye = false, TournamentId = 100 };
+
+// Target via Adapter
+Manager_de_Competitii.Interfaces.ICompetitor adaptedCompetitor = new Manager_de_Competitii.Models.CompetitorAdapter(myParticipant);
+
+Console.WriteLine($"[External System] Participant Name via Adapter: {adaptedCompetitor.GetCompetitorName()}");
+Console.WriteLine($"[External System] Participant Status via Adapter: {adaptedCompetitor.GetCompetitorStatus()}");
+Console.WriteLine("============================\n");
 #endregion
 
 app.Run();
