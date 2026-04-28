@@ -4,10 +4,6 @@ using Manager_de_Competitii.Models;
 
 namespace Manager_de_Competitii.Services
 {
-    /// <summary>
-    /// Facade class that simplifies the process of setting up a new competition.
-    /// It hides the complexity of interacting with multiple service classes.
-    /// </summary>
     public class CompetitionFacade
     {
         private UserCrudService _userService;

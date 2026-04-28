@@ -2,9 +2,6 @@ using Manager_de_Competitii.Interfaces;
 
 namespace Manager_de_Competitii.Models
 {
-    /// <summary>
-    /// Adapter - convertește interfața Participant (Adaptee) la interfața ICompetitor (Target)
-    /// </summary>
     public class CompetitorAdapter : ICompetitor
     {
         private readonly Participant _participant;
