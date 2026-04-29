@@ -1,4 +1,3 @@
-using Manager_de_Competitii.Models.User;
 
 namespace Manager_de_Competitii.Services.Proxy
 {

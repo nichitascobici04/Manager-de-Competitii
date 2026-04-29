@@ -1,0 +1,12 @@
+namespace Manager_de_Competitii.Models.Strategy
+{
+    public class StandardSoccerStrategy : IPointCalculationStrategy
+    {
+        public int CalculatePoints(int goalsScored, int goalsConceded)
+        {
+            if (goalsScored > goalsConceded) return 3; // Win
+            if (goalsScored == goalsConceded) return 1; // Draw
+            return 0; // Loss
+        }
+    }
+}
