@@ -5,6 +5,7 @@ using Manager_de_Competitii.Models.Decorator;
 using Manager_de_Competitii.Models.Bridge;
 using Manager_de_Competitii.Services.Proxy;
 using Manager_de_Competitii.Models.Strategy;
+using Manager_de_Competitii.Models.Observer;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -130,6 +131,29 @@ Console.WriteLine($"Soccer points (Draw 1-1): {matchProcessor.ProcessMatchResult
 
 matchProcessor.SetStrategy(new CustomEsportsStrategy());
 Console.WriteLine($"Esports points (Loss 0-2): {matchProcessor.ProcessMatchResult(0, 2)} pt(s)");
+Console.WriteLine("============================\n");
+#endregion
+
+#region Testare Observer Pattern
+Console.WriteLine("\n=== Observer Pattern Test ===");
+LiveMatch liveMatch = new LiveMatch("Team Alpha", "Team Beta");
+
+IMatchObserver scoreboard = new MatchSummaryBoard();
+IMatchObserver alertSystem = new GoalNotificationAlert();
+
+liveMatch.Subscribe(scoreboard);
+liveMatch.Subscribe(alertSystem);
+
+Console.WriteLine("--> Team Alpha scores!");
+liveMatch.ScoreGoal("Team Alpha");
+
+Console.WriteLine("--> Team Beta scores!");
+liveMatch.ScoreGoal("Team Beta");
+
+Console.WriteLine("--> Alert system unsubscribes, Team Alpha scores again!");
+liveMatch.Unsubscribe(alertSystem);
+liveMatch.ScoreGoal("Team Alpha");
+
 Console.WriteLine("============================\n");
 #endregion
 
