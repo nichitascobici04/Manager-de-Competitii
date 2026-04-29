@@ -6,6 +6,9 @@ using Manager_de_Competitii.Models.Bridge;
 using Manager_de_Competitii.Services.Proxy;
 using Manager_de_Competitii.Models.Strategy;
 using Manager_de_Competitii.Models.Observer;
+using Manager_de_Competitii.Models.Command;
+using Manager_de_Competitii.Models.Memento;
+using Manager_de_Competitii.Models.Iterator;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -154,6 +157,55 @@ Console.WriteLine("--> Alert system unsubscribes, Team Alpha scores again!");
 liveMatch.Unsubscribe(alertSystem);
 liveMatch.ScoreGoal("Team Alpha");
 
+Console.WriteLine("============================\n");
+#endregion
+
+#region Testare Command Pattern
+Console.WriteLine("\n=== Command Pattern Test ===");
+MatchController matchReceiver = new MatchController("Finala UEFA");
+ICommand startCommand = new StartMatchCommand(matchReceiver);
+ICommand cancelCommand = new CancelMatchCommand(matchReceiver);
+
+CommandInvoker invoker = new CommandInvoker();
+
+Console.WriteLine("Executing Start:");
+invoker.SetCommand(startCommand);
+invoker.ExecuteCommand();
+
+Console.WriteLine("Executing Cancel:");
+invoker.SetCommand(cancelCommand);
+invoker.ExecuteCommand();
+Console.WriteLine("============================\n");
+#endregion
+
+#region Testare Memento Pattern
+Console.WriteLine("\n=== Memento Pattern Test ===");
+TournamentConfigurator config = new TournamentConfigurator("Cupa de vara", 16, true);
+ConfigHistory history = new ConfigHistory(config);
+
+history.Backup(); // save state
+
+config.MaxTeams = 32;
+config.Name = "Cupa Extinsa";
+Console.WriteLine($"[Configurator] Modified state: {config.Name}, {config.MaxTeams}");
+
+history.Undo(); // revert to 16
+Console.WriteLine("============================\n");
+#endregion
+
+#region Testare Iterator Pattern
+Console.WriteLine("\n=== Iterator Pattern Test ===");
+MatchList schedule = new MatchList();
+schedule.AddMatch(new ScheduledMatch("Match 1", "Stadion A"));
+schedule.AddMatch(new ScheduledMatch("Match 2", "Stadion B"));
+schedule.AddMatch(new ScheduledMatch("Match 3", "Stadion A"));
+
+Console.WriteLine("-> Iterating specific stadium (Stadion A):");
+IMatchIterator stadiumIterator = schedule.CreateStadiumIterator("Stadion A");
+while (stadiumIterator.HasNext())
+{
+    Console.WriteLine(stadiumIterator.Next().ToString());
+}
 Console.WriteLine("============================\n");
 #endregion
 
