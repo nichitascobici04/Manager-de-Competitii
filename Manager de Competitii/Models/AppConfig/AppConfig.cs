@@ -4,13 +4,16 @@ namespace Manager_de_Competitii.Models.AppConfig
 {
     public sealed class AppConfig
     {
-        private AppConfig()
+        public AppConfig()
         {
             // Inițializare implicită a configurației
             AppName = "Competition Manager";
             MaximumParticipants = 16;
             EnableLogging = true;
+            DefaultTournamentType = "roundrobin";
         }
+        public string DefaultTournamentType { get; set; } = "roundrobin";
+
         private static AppConfig _instance;
         public static AppConfig CreateInstance
         {

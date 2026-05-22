@@ -13,7 +13,7 @@
 
     public interface IBuilderApi
     {
-        Task<string> BuildCompetitionAsync(string name);
+        Task<string> BuildCompetitionAsync(string name, int organizerId = 0);
     }
 
     public interface ISimpleFactoryApi
@@ -29,7 +29,7 @@
 
     public interface IProxyApi
     {
-        Task<string> StartCompetitionViaProxyAsync(int competitionId);
+        Task<string> StartCompetitionAsync(int competitionId);
     }
 
     public interface IBridgeApi
@@ -39,7 +39,7 @@
 
     public interface IFacadeApi
     {
-        Task<string> StartCompetitionFacadeAsync(int organizerId);
+        
     }
 
     // Behavioral

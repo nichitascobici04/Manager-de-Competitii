@@ -5,10 +5,12 @@
         private readonly IFormat _format;
         private readonly IMatchType _matchType;
 
-        public TournamentConfig(ITournamentFactory factory)
+        public IFormat Format => _format;
+
+        public TournamentConfig(IFormat format, IMatchType matchType)
         {
-            _format = factory.CreateFormat();
-            _matchType = factory.CreateMatchType();
+            _format = format;
+            _matchType = matchType;
         }
         public void Run()
         {

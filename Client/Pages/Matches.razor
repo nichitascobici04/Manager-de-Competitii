@@ -2,12 +2,12 @@
 @using Client.Services
 @inject PatternApiClient Api
 
-<h2>Matches (Iterator)</h2>
+<h2>Matches</h2>
 <div class="mb-3">
     <label for="compId" class="form-label">Competition ID</label>
     <input id="compId" type="number" class="form-control" @bind="_competitionId" />
 </div>
-<button class="btn btn-primary" @onclick="Iterate" disabled="@_loading">Iterate Matches</button>
+<button class="btn btn-primary mb-3" @onclick="Iterate" disabled="@_loading">Iterate Matches</button>
 @if (_loading)
 {
     <LoadingSpinner />
@@ -17,14 +17,72 @@
     <div class="alert alert-info mt-3">@_result</div>
 }
 
+<h3 class="mt-4">Match Strategies</h3>
+<div class="mb-3">
+    <label for="strategyName" class="form-label">Strategy Name</label>
+    <input id="strategyName" class="form-control" @bind="_strategyName" />
+</div>
+<button class="btn btn-primary" @onclick="ApplyStrategy" disabled="@_loadingStrategy">Apply Strategy</button>
+@if (_loadingStrategy)
+{
+    <LoadingSpinner />
+}
+@if (!string.IsNullOrEmpty(_strategyResult))
+{
+    <div class="alert alert-info mt-3">@_strategyResult</div>
+}
+
+<h3 class="mt-4">Match Commands</h3>
+<div class="mb-3">
+    <label for="commandName" class="form-label">Command Name</label>
+    <select id="commandName" class="form-select" @bind="_commandName">
+        <option value="StartMatch">StartMatch</option>
+        <option value="CancelMatch">CancelMatch</option>
+        <option value="">(Custom)</option>
+    </select>
+    <input class="form-control mt-2" placeholder="Custom command..." @bind="_commandName" />
+</div>
+<button class="btn btn-primary" @onclick="ExecuteCommand" disabled="@_loadingCommand">Execute</button>
+@if (_loadingCommand)
+{
+    <LoadingSpinner />
+}
+@if (!string.IsNullOrEmpty(_commandResult))
+{
+    <div class="alert alert-success mt-3">@_commandResult</div>
+}
+
 @code {
     int _competitionId;
     string? _result;
     bool _loading;
+
+    string _strategyName = "";
+    string? _strategyResult;
+    bool _loadingStrategy;
+
+    string _commandName = "StartMatch";
+    string? _commandResult;
+    bool _loadingCommand;
+
     async Task Iterate()
     {
         _loading = true;
         _result = await Api.IterateMatchesAsync(_competitionId);
         _loading = false;
+    }
+
+    async Task ApplyStrategy()
+    {
+        _loadingStrategy = true;
+        _strategyResult = await Api.ApplyStrategyAsync(_strategyName);
+        _loadingStrategy = false;
+    }
+
+    async Task ExecuteCommand()
+    {
+        _loadingCommand = true;
+        _commandResult = await Api.ExecuteCommandAsync(_commandName);
+        _loadingCommand = false;
     }
 }

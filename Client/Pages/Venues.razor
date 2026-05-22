@@ -3,7 +3,11 @@
 @inject PatternApiClient Api
 
 <h2>Venues</h2>
-<button class="btn btn-outline-secondary mb-3" @onclick="ListVenues">List Venues</button>
+<div class="mb-3">
+    <label for="venueName" class="form-label">Venue Name</label>
+    <input id="venueName" class="form-control" @bind="_newVenue" />
+    <button class="btn btn-success mt-2" @onclick="AddVenue" disabled="@_loading">Add Venue</button>
+</div>
 @if (_venues != null)
 {
     <ul class="list-group mb-4">
@@ -11,7 +15,10 @@
         {
             <li class="list-group-item d-flex justify-content-between align-items-center">
                 @v
-                <button class="btn btn-sm btn-link" @onclick="() => ShowVenue(v)">Details</button>
+                <span>
+                    <button class="btn btn-sm btn-link" @onclick="() => ShowVenue(v)">Details</button>
+                    <button class="btn btn-sm btn-danger" @onclick="() => DeleteVenue(v)" disabled="@_loading">Delete</button>
+                </span>
             </li>
         }
     </ul>
@@ -24,6 +31,18 @@
             <pre>@_venueInfo</pre>
             <div class="mt-2">Same instance test: <span class="badge bg-@(_sameInstance ? "success" : "danger")">@(_sameInstance ? "Yes" : "No")</span></div>
         </div>
+        <button class="btn btn-warning mt-2" @onclick="EditVenue">Edit</button>
+    </div>
+}
+@if (_editing)
+{
+    <div class="card mb-3">
+        <div class="card-header">Edit Venue: @_venueKey</div>
+        <div class="card-body">
+            <input class="form-control mb-2" @bind="_editVenueName" />
+            <button class="btn btn-primary me-2" @onclick="SaveVenueEdit" disabled="@_loading">Save</button>
+            <button class="btn btn-secondary" @onclick="CancelEdit">Cancel</button>
+        </div>
     </div>
 }
 
@@ -33,9 +52,45 @@
     string? _venueInfo;
     string? _lastVenueInfo;
     bool _sameInstance;
+    string _newVenue = "";
+    bool _loading;
+    bool _editing;
+    string _editVenueName = "";
     async Task ListVenues()
     {
         _venues = await Api.ListVenuesAsync();
+    }
+    async Task AddVenue()
+    {
+        _loading = true;
+        await Api.AddVenueAsync(_newVenue);
+        _newVenue = "";
+        await ListVenues();
+        _loading = false;
+    }
+    async Task DeleteVenue(string venue)
+    {
+        _loading = true;
+        await Api.DeleteVenueAsync(venue);
+        await ListVenues();
+        _loading = false;
+    }
+    void EditVenue()
+    {
+        _editing = true;
+        _editVenueName = _venueKey ?? "";
+    }
+    async Task SaveVenueEdit()
+    {
+        _loading = true;
+        await Api.EditVenueAsync(_venueKey!, _editVenueName);
+        _editing = false;
+        await ListVenues();
+        _loading = false;
+    }
+    void CancelEdit()
+    {
+        _editing = false;
     }
     async Task ShowVenue(string key)
     {

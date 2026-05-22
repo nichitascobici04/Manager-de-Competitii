@@ -1,13 +1,28 @@
 @page "/livematch"
 @using Client.Services
+@using Client.Models
 @inject PatternApiClient Api
 
-<h2>Live Match (Observer)</h2>
+<h2>Live Match</h2>
 <div class="mb-3">
-    <label for="matchId" class="form-label">Match ID</label>
-    <input id="matchId" type="number" class="form-control" @bind="_matchId" />
+    <label for="matchId" class="form-label">Select Match</label>
+    <select id="matchId" class="form-control" @bind="_matchId">
+        <option value="0">Select a match</option>
+        @if (_matches != null)
+        {
+            @foreach (var group in _matches.GroupBy(m => string.IsNullOrEmpty(m.CompetitionName) ? "Unassigned" : m.CompetitionName))
+            {
+                <optgroup label="@group.Key">
+                    @foreach (var m in group)
+                    {
+                        <option value="@m.Id">@m.Name</option>
+                    }
+                </optgroup>
+            }
+        }
+    </select>
 </div>
-<button class="btn btn-success me-2" @onclick="Subscribe" disabled="@_subscribed">Subscribe</button>
+<button class="btn btn-success me-2" @onclick="Subscribe" disabled="@_subscribed || _matchId == 0">Subscribe</button>
 <button class="btn btn-danger" @onclick="Unsubscribe" disabled="!_subscribed">Unsubscribe</button>
 @if (_subscribed)
 {
@@ -25,6 +40,11 @@
     bool _subscribed;
     List<string> _events = new();
     System.Threading.Timer? _timer;
+    List<MatchDto>? _matches;
+    protected override async Task OnInitializedAsync()
+    {
+        _matches = await Api.ListMatchesAsync();
+    }
     async Task Subscribe()
     {
         _subscribed = true;

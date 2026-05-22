@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System;
+using Client.Models;
 
 namespace Client.Services
 {
@@ -64,19 +65,20 @@ namespace Client.Services
         // Creational
         public Task<string?> ConfigureTournamentAsync(string type) => GetAsync<string>($"tournaments/configure?tournamentType={Uri.EscapeDataString(type)}");
         public Task<string?> GenerateRoundsAsync(string type) => GetAsync<string>($"rounds/generate?roundsType={Uri.EscapeDataString(type)}");
-        public Task<string?> BuildCompetitionAsync(string name) => GetAsync<string>($"competitions/build?name={Uri.EscapeDataString(name)}");
+        public Task<string?> BuildCompetitionAsync(string name, int organizerId = 0) => GetAsync<string>($"builder/build?name={Uri.EscapeDataString(name)}&organizerId={organizerId}");
         public Task<string?> CreateParticipantAsync(string kind, string name) => GetAsync<string>($"participants/create?kind={Uri.EscapeDataString(kind)}&name={Uri.EscapeDataString(name)}");
 
         // Structural
         public Task<string?> GetVenueInfoAsync(string key) => GetAsync<string>($"venues/info?venueKey={Uri.EscapeDataString(key)}");
         public Task<List<string>?> ListVenuesAsync() => GetAsync<List<string>>("venues/list");
-        public Task<string?> StartCompetitionViaProxyAsync(int id) => GetAsync<string>($"competitions/start-via-proxy?competitionId={id}");
-        public Task<string?> GetCompetitionStatusViaProxyAsync(int id) => GetAsync<string>($"competitions/status-via-proxy?competitionId={id}");
+        public Task<string?> AddVenueAsync(string name) => GetAsync<string>($"venues/add?name={Uri.EscapeDataString(name)}");
+        public Task<string?> DeleteVenueAsync(string name) => GetAsync<string>($"venues/delete?name={Uri.EscapeDataString(name)}");
+        public Task<string?> EditVenueAsync(string oldName, string newName) => GetAsync<string>($"venues/edit?oldName={Uri.EscapeDataString(oldName)}&newName={Uri.EscapeDataString(newName)}");
+        public Task<string?> StartCompetitionAsync(int id) => GetAsync<string>($"proxy/start?competitionId={id}");
         public Task<string?> SendNotificationAsync(string channel, string message) => GetAsync<string>($"notifications/send?channel={Uri.EscapeDataString(channel)}&message={Uri.EscapeDataString(message)}");
         public Task<string?> SendInviteAsync(string tournament, string channel) => GetAsync<string>($"notifications/send-invite?tournament={Uri.EscapeDataString(tournament)}&channel={Uri.EscapeDataString(channel)}");
         public Task<string?> SendResultAsync(int matchId, string channel) => GetAsync<string>($"notifications/send-result?matchId={matchId}&channel={Uri.EscapeDataString(channel)}");
-        public Task<string?> CreateCompetitionViaFacadeAsync(string name, int organizerId) => GetAsync<string>($"competitions/create-via-facade?name={Uri.EscapeDataString(name)}&organizerId={organizerId}");
-        public Task<string?> StartCompetitionViaFacadeAsync(int organizerId) => GetAsync<string>($"competitions/start-via-facade?organizerId={organizerId}");
+        public Task<List<MatchDto>?> ListMatchesAsync() => GetAsync<List<MatchDto>>("matches/list");
 
         // Behavioral
         public Task<string?> IterateMatchesAsync(int competitionId) => GetAsync<string>($"matches/iterate?competitionId={competitionId}");

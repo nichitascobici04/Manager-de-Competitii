@@ -1,11 +1,17 @@
 @page "/participants"
 @using Client.Services
+@using Client.Shared
 @inject PatternApiClient Api
 
 <h2>Create Participant</h2>
 <div class="mb-3">
     <label for="kind" class="form-label">Kind</label>
-    <input id="kind" class="form-control" @bind="_kind" />
+    <select id="kind" class="form-control" @bind="_kind">
+        <option value="">Select kind</option>
+        <option value="Player">Player</option>
+        <option value="Team">Team</option>
+        <option value="Coach">Coach</option>
+    </select>
 </div>
 <div class="mb-3">
     <label for="pname" class="form-label">Name</label>

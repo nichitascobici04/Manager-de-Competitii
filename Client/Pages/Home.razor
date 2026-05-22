@@ -1,7 +1,84 @@
-﻿@page "/Home"
+﻿@page "/"
+@page "/Home"
+@using Client.Services
+@inject PatternApiClient Api
+@inject NavigationManager Nav
+@inject IJSRuntime JS
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Home Dashboard</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="container py-4">
+    <h1 class="mb-4">Dashboard</h1>
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Competitions</h5>
+                    <p class="display-6">@_competitions</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Upcoming Matches</h5>
+                    <p class="display-6">@_matches</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Notifications</h5>
+                    <p class="display-6">@_notifications</p>
+                </div>
+            </div>
+        </div>
 
-Welcome to your new app.
+    </div>
+    <div class="row g-3 mb-5">
+        <div class="col-12 col-md-6">
+            <a class="btn btn-primary w-100 mb-2" href="/competitions">Build Competition</a>
+        </div>
+        <div class="col-12 col-md-6">
+            <a class="btn btn-info w-100 mb-2" href="/notifications">Send Notification</a>
+        </div>
+    </div>
+
+    <h2>API Settings</h2>
+    <div class="mb-3">
+        <label for="baseUrl" class="form-label">API Base URL</label>
+        <input id="baseUrl" class="form-control" @bind="_baseUrl" />
+    </div>
+    <button class="btn btn-primary" @onclick="Save">Save Settings</button>
+    @if (_saved)
+    {
+        <div class="alert alert-success mt-3">Settings Saved!</div>
+    }
+</div>
+
+@code {
+    int _competitions = 0;
+    int _matches = 0;
+    int _notifications = 0;
+    
+    string _baseUrl = "";
+    bool _saved;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _baseUrl = Api.BaseUrl;
+
+        // Simulate summary data
+        _competitions = 3;
+        _matches = 5;
+        _notifications = 2;
+    }
+
+    async Task Save()
+    {
+        Api.SetBaseUrl(_baseUrl);
+        await JS.InvokeVoidAsync("localStorage.setItem", "apiBaseUrl", _baseUrl);
+        _saved = true;
+    }
+}
