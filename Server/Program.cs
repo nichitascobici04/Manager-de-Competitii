@@ -1,0 +1,2 @@
+app.UseDefaultFiles();
+app.UseStaticFiles();

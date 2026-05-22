@@ -1,0 +1,4 @@
+body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+.pattern-section { padding: 0.5rem 0; }
+.list-group .active { cursor: default; }
+pre#response { white-space: pre-wrap; word-break: break-word; }

@@ -1,0 +1,48 @@
+@page "/venues"
+@using Client.Services
+@inject PatternApiClient Api
+
+<h2>Venues</h2>
+<button class="btn btn-outline-secondary mb-3" @onclick="ListVenues">List Venues</button>
+@if (_venues != null)
+{
+    <ul class="list-group mb-4">
+        @foreach (var v in _venues)
+        {
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                @v
+                <button class="btn btn-sm btn-link" @onclick="() => ShowVenue(v)">Details</button>
+            </li>
+        }
+    </ul>
+}
+@if (!string.IsNullOrEmpty(_venueKey))
+{
+    <div class="card mb-3">
+        <div class="card-header">Venue Info: @_venueKey</div>
+        <div class="card-body">
+            <pre>@_venueInfo</pre>
+            <div class="mt-2">Same instance test: <span class="badge bg-@(_sameInstance ? "success" : "danger")">@(_sameInstance ? "Yes" : "No")</span></div>
+        </div>
+    </div>
+}
+
+@code {
+    List<string>? _venues;
+    string? _venueKey;
+    string? _venueInfo;
+    string? _lastVenueInfo;
+    bool _sameInstance;
+    async Task ListVenues()
+    {
+        _venues = await Api.ListVenuesAsync();
+    }
+    async Task ShowVenue(string key)
+    {
+        _venueKey = key;
+        var info = await Api.GetVenueInfoAsync(key);
+        _sameInstance = info == _lastVenueInfo;
+        _venueInfo = info;
+        _lastVenueInfo = info;
+    }
+}

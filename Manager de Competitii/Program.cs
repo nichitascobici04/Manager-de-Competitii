@@ -209,4 +209,15 @@ while (stadiumIterator.HasNext())
 Console.WriteLine("============================\n");
 #endregion
 
+var builder = WebApplication.CreateBuilder(args);
+
+var app = builder.Build();
+
+app.UseBlazorFrameworkFiles();
+app.UseStaticFiles();
+
+app.MapControllers();
+
+app.MapFallbackToFile("index.html");
+
 app.Run();

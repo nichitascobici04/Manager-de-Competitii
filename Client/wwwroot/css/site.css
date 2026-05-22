@@ -1,0 +1,4 @@
+/* Custom site styles */
+body { background: #f8f9fa; }
+.card { box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
+.navbar-brand { font-weight: bold; }

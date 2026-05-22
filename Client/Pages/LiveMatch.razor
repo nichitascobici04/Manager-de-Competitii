@@ -1,0 +1,55 @@
+@page "/livematch"
+@using Client.Services
+@inject PatternApiClient Api
+
+<h2>Live Match (Observer)</h2>
+<div class="mb-3">
+    <label for="matchId" class="form-label">Match ID</label>
+    <input id="matchId" type="number" class="form-control" @bind="_matchId" />
+</div>
+<button class="btn btn-success me-2" @onclick="Subscribe" disabled="@_subscribed">Subscribe</button>
+<button class="btn btn-danger" @onclick="Unsubscribe" disabled="!_subscribed">Unsubscribe</button>
+@if (_subscribed)
+{
+    <div class="alert alert-info mt-3">Subscribed! Simulated live events below:</div>
+    <ul class="list-group mt-2">
+        @foreach (var ev in _events)
+        {
+            <li class="list-group-item">@ev</li>
+        }
+    </ul>
+}
+
+@code {
+    int _matchId;
+    bool _subscribed;
+    List<string> _events = new();
+    System.Threading.Timer? _timer;
+    async Task Subscribe()
+    {
+        _subscribed = true;
+        _events.Clear();
+        _timer = new System.Threading.Timer(async _ => await Poll(), null, 0, 4000);
+    }
+    async Task Poll()
+    {
+        if (!_subscribed) return;
+        var ev = await Api.SubscribeLiveMatchAsync(_matchId);
+        if (!string.IsNullOrEmpty(ev))
+        {
+            _events.Insert(0, $"[{DateTime.Now:T}] {ev}");
+            if (_events.Count > 10) _events.RemoveAt(_events.Count - 1);
+            InvokeAsync(StateHasChanged);
+        }
+    }
+    void Unsubscribe()
+    {
+        _subscribed = false;
+        _timer?.Dispose();
+        _timer = null;
+    }
+    public void Dispose()
+    {
+        Unsubscribe();
+    }
+}

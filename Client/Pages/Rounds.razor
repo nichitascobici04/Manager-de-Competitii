@@ -1,0 +1,30 @@
+@page "/rounds"
+@using Client.Services
+@inject PatternApiClient Api
+
+<h2>Generate Rounds</h2>
+<div class="mb-3">
+    <label for="roundsType" class="form-label">Rounds Type</label>
+    <input id="roundsType" class="form-control" @bind="_type" />
+</div>
+<button class="btn btn-success" @onclick="Generate" disabled="@_loading">Generate</button>
+@if (_loading)
+{
+    <LoadingSpinner />
+}
+@if (!string.IsNullOrEmpty(_result))
+{
+    <div class="alert alert-info mt-3">@_result</div>
+}
+
+@code {
+    string _type = "";
+    string? _result;
+    bool _loading;
+    async Task Generate()
+    {
+        _loading = true;
+        _result = await Api.GenerateRoundsAsync(_type);
+        _loading = false;
+    }
+}

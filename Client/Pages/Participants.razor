@@ -1,0 +1,35 @@
+@page "/participants"
+@using Client.Services
+@inject PatternApiClient Api
+
+<h2>Create Participant</h2>
+<div class="mb-3">
+    <label for="kind" class="form-label">Kind</label>
+    <input id="kind" class="form-control" @bind="_kind" />
+</div>
+<div class="mb-3">
+    <label for="pname" class="form-label">Name</label>
+    <input id="pname" class="form-control" @bind="_name" />
+</div>
+<button class="btn btn-primary" @onclick="Create" disabled="@_loading">Create</button>
+@if (_loading)
+{
+    <LoadingSpinner />
+}
+@if (!string.IsNullOrEmpty(_result))
+{
+    <div class="alert alert-success mt-3">@_result</div>
+}
+
+@code {
+    string _kind = "";
+    string _name = "";
+    string? _result;
+    bool _loading;
+    async Task Create()
+    {
+        _loading = true;
+        _result = await Api.CreateParticipantAsync(_kind, _name);
+        _loading = false;
+    }
+}

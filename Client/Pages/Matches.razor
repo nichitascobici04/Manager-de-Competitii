@@ -1,0 +1,30 @@
+@page "/matches"
+@using Client.Services
+@inject PatternApiClient Api
+
+<h2>Matches (Iterator)</h2>
+<div class="mb-3">
+    <label for="compId" class="form-label">Competition ID</label>
+    <input id="compId" type="number" class="form-control" @bind="_competitionId" />
+</div>
+<button class="btn btn-primary" @onclick="Iterate" disabled="@_loading">Iterate Matches</button>
+@if (_loading)
+{
+    <LoadingSpinner />
+}
+@if (!string.IsNullOrEmpty(_result))
+{
+    <div class="alert alert-info mt-3">@_result</div>
+}
+
+@code {
+    int _competitionId;
+    string? _result;
+    bool _loading;
+    async Task Iterate()
+    {
+        _loading = true;
+        _result = await Api.IterateMatchesAsync(_competitionId);
+        _loading = false;
+    }
+}

@@ -1,0 +1,106 @@
+@page "/notifications"
+@using Client.Services
+@inject PatternApiClient Api
+
+<h2>Notifications</h2>
+<div class="mb-3">
+    <label for="channel" class="form-label">Channel</label>
+    <input id="channel" class="form-control" @bind="_channel" />
+</div>
+<div class="mb-3">
+    <label for="message" class="form-label">Message</label>
+    <input id="message" class="form-control" @bind="_message" />
+</div>
+<button class="btn btn-primary me-2" @onclick="SendNotification" disabled="@_loading">Send Notification</button>
+@if (_loading)
+{
+    <LoadingSpinner />
+}
+@if (!string.IsNullOrEmpty(_notifResult))
+{
+    <div class="alert alert-success mt-3">@_notifResult</div>
+}
+
+<h3 class="mt-4">Send Invite</h3>
+<div class="mb-3">
+    <label for="inviteTournament" class="form-label">Tournament</label>
+    <input id="inviteTournament" class="form-control" @bind="_inviteTournament" />
+</div>
+<div class="mb-3">
+    <label for="inviteChannel" class="form-label">Channel</label>
+    <input id="inviteChannel" class="form-control" @bind="_inviteChannel" />
+</div>
+<button class="btn btn-info me-2" @onclick="SendInvite" disabled="@_loading2">Send Invite</button>
+@if (_loading2)
+{
+    <LoadingSpinner />
+}
+@if (!string.IsNullOrEmpty(_inviteResult))
+{
+    <div class="alert alert-info mt-3">@_inviteResult</div>
+}
+
+<h3 class="mt-4">Send Result</h3>
+<div class="mb-3">
+    <label for="resultMatchId" class="form-label">Match ID</label>
+    <input id="resultMatchId" type="number" class="form-control" @bind="_resultMatchId" />
+</div>
+<div class="mb-3">
+    <label for="resultChannel" class="form-label">Channel</label>
+    <input id="resultChannel" class="form-control" @bind="_resultChannel" />
+</div>
+<button class="btn btn-warning me-2" @onclick="SendResult" disabled="@_loading3">Send Result</button>
+@if (_loading3)
+{
+    <LoadingSpinner />
+}
+@if (!string.IsNullOrEmpty(_resultResult))
+{
+    <div class="alert alert-warning mt-3">@_resultResult</div>
+}
+
+<h3 class="mt-4">Activity Log</h3>
+<ul class="list-group">
+    @foreach (var log in _activityLog)
+    {
+        <li class="list-group-item">@log</li>
+    }
+</ul>
+
+@code {
+    string _channel = "";
+    string _message = "";
+    string? _notifResult;
+    bool _loading;
+    string _inviteTournament = "";
+    string _inviteChannel = "";
+    string? _inviteResult;
+    bool _loading2;
+    int _resultMatchId;
+    string _resultChannel = "";
+    string? _resultResult;
+    bool _loading3;
+    List<string> _activityLog = new();
+
+    async Task SendNotification()
+    {
+        _loading = true;
+        _notifResult = await Api.SendNotificationAsync(_channel, _message);
+        if (!string.IsNullOrEmpty(_notifResult)) _activityLog.Add($"Notification: {_notifResult}");
+        _loading = false;
+    }
+    async Task SendInvite()
+    {
+        _loading2 = true;
+        _inviteResult = await Api.SendInviteAsync(_inviteTournament, _inviteChannel);
+        if (!string.IsNullOrEmpty(_inviteResult)) _activityLog.Add($"Invite: {_inviteResult}");
+        _loading2 = false;
+    }
+    async Task SendResult()
+    {
+        _loading3 = true;
+        _resultResult = await Api.SendResultAsync(_resultMatchId, _resultChannel);
+        if (!string.IsNullOrEmpty(_resultResult)) _activityLog.Add($"Result: {_resultResult}");
+        _loading3 = false;
+    }
+}

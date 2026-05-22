@@ -1,0 +1,30 @@
+@using Client.Services
+@inject PatternApiClient Api
+@if (!string.IsNullOrEmpty(_message))
+{
+    <div class="toast show position-fixed bottom-0 end-0 m-3" style="z-index: 2000; min-width: 250px;">
+        <div class="toast-header bg-danger text-white">
+            <strong class="me-auto">Error</strong>
+            <button type="button" class="btn-close" @onclick="Clear" aria-label="Close"></button>
+        </div>
+        <div class="toast-body">@_message</div>
+    </div>
+}
+
+@code {
+    private string? _message;
+    protected override void OnInitialized()
+    {
+        Api.OnError += Show;
+    }
+    void Show(string msg)
+    {
+        _message = msg;
+        StateHasChanged();
+    }
+    void Clear()
+    {
+        _message = null;
+        StateHasChanged();
+    }
+}

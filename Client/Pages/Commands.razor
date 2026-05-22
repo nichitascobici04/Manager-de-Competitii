@@ -1,0 +1,35 @@
+@page "/commands"
+@using Client.Services
+@inject PatternApiClient Api
+
+<h2>Commands</h2>
+<div class="mb-3">
+    <label for="commandName" class="form-label">Command Name</label>
+    <select id="commandName" class="form-select" @bind="_commandName">
+        <option value="StartMatch">StartMatch</option>
+        <option value="CancelMatch">CancelMatch</option>
+        <option value="">(Custom)</option>
+    </select>
+    <input class="form-control mt-2" placeholder="Custom command..." @bind="_commandName" />
+</div>
+<button class="btn btn-primary" @onclick="Execute" disabled="@_loading">Execute</button>
+@if (_loading)
+{
+    <LoadingSpinner />
+}
+@if (!string.IsNullOrEmpty(_result))
+{
+    <div class="alert alert-success mt-3">@_result</div>
+}
+
+@code {
+    string _commandName = "StartMatch";
+    string? _result;
+    bool _loading;
+    async Task Execute()
+    {
+        _loading = true;
+        _result = await Api.ExecuteCommandAsync(_commandName);
+        _loading = false;
+    }
+}

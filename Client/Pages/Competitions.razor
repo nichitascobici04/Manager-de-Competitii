@@ -1,0 +1,113 @@
+@page "/competitions"
+@using Client.Services
+@inject PatternApiClient Api
+
+<h2>Build Competition</h2>
+<div class="mb-3">
+    <label for="compName" class="form-label">Competition Name</label>
+    <input id="compName" class="form-control" @bind="_name" />
+</div>
+<button class="btn btn-primary" @onclick="Build" disabled="@_loading">Build</button>
+@if (_loading)
+{
+    <LoadingSpinner />
+}
+@if (!string.IsNullOrEmpty(_result))
+{
+    <div class="alert alert-success mt-3">@_result</div>
+}
+
+<h3 class="mt-5">Create via Facade</h3>
+<div class="mb-3">
+    <label for="facadeName" class="form-label">Name</label>
+    <input id="facadeName" class="form-control" @bind="_facadeName" />
+</div>
+<div class="mb-3">
+    <label for="organizerId" class="form-label">Organizer ID</label>
+    <input id="organizerId" type="number" class="form-control" @bind="_organizerId" />
+</div>
+<button class="btn btn-secondary" @onclick="CreateViaFacade" disabled="@_loading2">Create via Facade</button>
+@if (_loading2)
+{
+    <LoadingSpinner />
+}
+@if (!string.IsNullOrEmpty(_facadeResult))
+{
+    <div class="alert alert-info mt-3">@_facadeResult</div>
+}
+
+<h3 class="mt-5">Start via Facade/Proxy</h3>
+<div class="mb-3">
+    <label for="startOrgId" class="form-label">Organizer ID</label>
+    <input id="startOrgId" type="number" class="form-control" @bind="_startOrgId" />
+</div>
+<button class="btn btn-success me-2" @onclick="StartViaFacade" disabled="@_loading3">Start via Facade</button>
+<button class="btn btn-warning" @onclick="StartViaProxy" disabled="@_loading4">Start via Proxy</button>
+@if (_loading3)
+{
+    <LoadingSpinner />
+}
+@if (!string.IsNullOrEmpty(_startResult))
+{
+    <div class="alert alert-success mt-3">@_startResult</div>
+}
+<div class="mb-3 mt-3">
+    <label for="proxyCompId" class="form-label">Competition ID (Proxy Status)</label>
+    <input id="proxyCompId" type="number" class="form-control" @bind="_proxyCompId" />
+</div>
+<button class="btn btn-info" @onclick="CheckProxyStatus" disabled="@_loading5">Check Proxy Status</button>
+@if (_loading5)
+{
+    <LoadingSpinner />
+}
+@if (!string.IsNullOrEmpty(_proxyStatus))
+{
+    <div class="alert alert-secondary mt-3">@_proxyStatus</div>
+}
+
+@code {
+    string _name = "";
+    string? _result;
+    bool _loading;
+    string _facadeName = "";
+    int _organizerId;
+    string? _facadeResult;
+    bool _loading2;
+    int _startOrgId;
+    string? _startResult;
+    bool _loading3;
+    int _proxyCompId;
+    string? _proxyStatus;
+    bool _loading4, _loading5;
+
+    async Task Build()
+    {
+        _loading = true;
+        _result = await Api.BuildCompetitionAsync(_name);
+        _loading = false;
+    }
+    async Task CreateViaFacade()
+    {
+        _loading2 = true;
+        _facadeResult = await Api.CreateCompetitionViaFacadeAsync(_facadeName, _organizerId);
+        _loading2 = false;
+    }
+    async Task StartViaFacade()
+    {
+        _loading3 = true;
+        _startResult = await Api.StartCompetitionViaFacadeAsync(_startOrgId);
+        _loading3 = false;
+    }
+    async Task StartViaProxy()
+    {
+        _loading4 = true;
+        _startResult = await Api.StartCompetitionViaProxyAsync(_startOrgId);
+        _loading4 = false;
+    }
+    async Task CheckProxyStatus()
+    {
+        _loading5 = true;
+        _proxyStatus = await Api.GetCompetitionStatusViaProxyAsync(_proxyCompId);
+        _loading5 = false;
+    }
+}
