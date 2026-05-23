@@ -63,7 +63,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// Do not redirect to HTTPS in Replit environment
 
 app.UseAuthorization();
 
