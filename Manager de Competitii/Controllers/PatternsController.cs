@@ -108,14 +108,17 @@ namespace Manager_de_Competitii.Controllers
         }
 
         [HttpGet("proxy/start")]
-        public IActionResult StartCompetitionAsync([FromQuery] int competitionId, [FromServices] ICompetitionManager proxyManager)
+        public async Task<IActionResult> StartCompetitionAsync([FromQuery] int competitionId, [FromServices] ICompetitionManager proxyManager, [FromServices] Manager_de_Competitii.Repositories.IRepository<Competition> compRepo)
         {
-            var comp = _competitions.Find(c => c.Id == competitionId);
-            if (comp != null) comp.Started = true;
-            
+            var comp = await compRepo.GetByIdAsync(competitionId);
+            if (comp == null) return NotFound(new { Error = $"Competition {competitionId} not found" });
+
+            comp.IsCompleted = true;
+            await compRepo.UpdateAsync(comp.Id, comp);
+
             try 
             {
-                proxyManager.CreateCompetition(comp?.Name ?? "UnknownCompetition", 1);
+                proxyManager.CreateCompetition(comp.Name ?? "UnknownCompetition", 1);
             }
             catch (Exception ex)
             {
@@ -386,7 +389,7 @@ namespace Manager_de_Competitii.Controllers
                 await _repo.AddAsync(new MatchVenue { StadiumName = "Arena Centrala", Location = "Iasi", Capacity = 15000 });
                 venues = await _repo.GetAllAsync();
             }
-            return Ok(venues);
+            return Ok(venues.Select(v => new { Name = v.StadiumName }));
         }
 
         [HttpGet("{venueKey}")]

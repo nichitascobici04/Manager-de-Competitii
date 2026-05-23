@@ -1,0 +1,20 @@
+[
+  {
+    "Id": 1,
+    "StadiumName": "Stadionul National",
+    "Location": "Bucuresti",
+    "Capacity": 55000
+  },
+  {
+    "Id": 2,
+    "StadiumName": "Stadionul Municipal",
+    "Location": "Cluj",
+    "Capacity": 30000
+  },
+  {
+    "Id": 3,
+    "StadiumName": "Arena Centrala",
+    "Location": "Iasi",
+    "Capacity": 15000
+  }
+]
