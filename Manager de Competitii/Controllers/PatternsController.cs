@@ -33,6 +33,20 @@ namespace Manager_de_Competitii.Controllers
         ICommandApi,
         IStrategyApi
     {
+        public static int _competitionsCount = 0;
+        public static List<CompetitionDto> _competitions = new();
+
+        public class CompetitionDto
+        {
+            public int Id { get; set; }
+            public string Name { get; set; } = "";
+            public string Sport { get; set; } = "Football";
+            public string Type { get; set; } = "Knockout";
+            public string Location { get; set; } = "";
+            public bool Started { get; set; } = false;
+            public List<string> Participants { get; set; } = new();
+        }
+
         // NOTE: These are stub endpoints. Replace with injected services (constructor DI) to call real implementations.
 
         // Creational
@@ -51,8 +65,17 @@ namespace Manager_de_Competitii.Controllers
         }
 
         [HttpGet("builder/build")]  
-        public Task<string> BuildCompetitionAsync([FromQuery] string name, [FromQuery] int organizerId = 0)
+        public Task<string> BuildCompetitionAsync([FromQuery] string name, [FromQuery] string sport, [FromQuery] string type, [FromQuery] string location, [FromQuery] int organizerId = 0)
         {
+            _competitionsCount++;
+            var dto = new CompetitionDto {
+                Id = _competitionsCount,
+                Name = name,
+                Sport = sport ?? "Football",
+                Type = type ?? "Knockout",
+                Location = location ?? ""
+            };
+            _competitions.Add(dto);
             // Example: CompetitionDirector + ICompetitionBuilder inside a Facade
             return Task.FromResult($"Builder & Facade: built and created competition with name = '{name}', organizer = {organizerId}");
         }
@@ -75,6 +98,8 @@ namespace Manager_de_Competitii.Controllers
         [HttpGet("proxy/start")]
         public Task<string> StartCompetitionAsync([FromQuery] int competitionId)
         {
+            var comp = _competitions.Find(c => c.Id == competitionId);
+            if (comp != null) comp.Started = true;
             // Example: CompetitionManagerProxy -> access control / lazy load orchestrating via Facade
             return Task.FromResult($"Proxy & Facade: started competition id = {competitionId}");
         }
@@ -137,6 +162,44 @@ namespace Manager_de_Competitii.Controllers
 
     [ApiController]
     [Route("api/[controller]")]
+    public class CompetitionsController : ControllerBase
+    {
+        [HttpGet("list")]
+        public IActionResult List()
+        {
+            return Ok(PatternsController._competitions);
+        }
+
+        [HttpGet("update")]
+        public IActionResult Update([FromQuery] int id, [FromQuery] string sport, [FromQuery] string type, [FromQuery] string location)
+        {
+            var comp = PatternsController._competitions.Find(c => c.Id == id);
+            if (comp != null)
+            {
+                comp.Sport = sport;
+                comp.Type = type;
+                comp.Location = location;
+                return Ok(new { Message = "Competition updated" });
+            }
+            return NotFound("Competition not found");
+        }
+
+        [HttpGet("participant")]
+        public IActionResult AttachParticipant([FromQuery] int compId, [FromQuery] string participantName)
+        {
+            var comp = PatternsController._competitions.Find(c => c.Id == compId);
+            if (comp != null)
+            {
+                if (!comp.Participants.Contains(participantName))
+                    comp.Participants.Add(participantName);
+                return Ok(new { Message = "Participant attached" });
+            }
+            return NotFound("Competition not found");
+        }
+    }
+
+    [ApiController]
+    [Route("api/[controller]")]
     public class RoundsController : ControllerBase
     {
         [HttpGet("generate")]
@@ -162,18 +225,39 @@ namespace Manager_de_Competitii.Controllers
     [Route("api/[controller]")]
     public class ParticipantsController : ControllerBase
     {
-        [HttpPost]
-        public IActionResult Create([FromBody] CreateParticipantRequest req)
-        {
-            if (req == null || string.IsNullOrWhiteSpace(req.Kind) || string.IsNullOrWhiteSpace(req.Name))
-                return BadRequest("kind and name are required.");
+        public static List<ParticipantDto> _participants = new();
 
-            Participant p = new Participant { Name = req.Name };
-            // In a real app map Kind to RegisteredUser/Guest via factory
-            return Ok(new { Message = $"Created participant kind='{req.Kind}' name='{req.Name}'", Participant = p });
+        public class ParticipantDto
+        {
+            public string Kind { get; set; } = "";
+            public string Name { get; set; } = "";
         }
 
-        public record CreateParticipantRequest(string Kind, string Name);
+        [HttpPost("create")]
+        public IActionResult Create([FromQuery] string kind, [FromQuery] string name)
+        {
+            if (string.IsNullOrWhiteSpace(kind) || string.IsNullOrWhiteSpace(name))
+                return BadRequest("kind and name are required.");
+
+            _participants.Add(new ParticipantDto { Kind = kind, Name = name });
+            Participant p = new Participant { Name = name };
+            // In a real app map Kind to RegisteredUser/Guest via factory
+            return Ok(new { Message = $"Created participant kind='{kind}' name='{name}'", Participant = p });
+        }
+
+        [HttpGet("delete")]
+        public IActionResult Delete([FromQuery] string name)
+        {
+            var p = _participants.Find(x => x.Name == name);
+            if (p != null) _participants.Remove(p);
+            return Ok(new { Message = "Participant deleted" });
+        }
+
+        [HttpGet("list")]
+        public IActionResult List()
+        {
+            return Ok(_participants);
+        }
     }
 
     [ApiController]
@@ -230,6 +314,8 @@ namespace Manager_de_Competitii.Controllers
     [Route("api/[controller]")]
     public class NotificationsController : ControllerBase
     {
+        public static int _notificationsCount = 0;
+
         [HttpPost("send")]
         public IActionResult Send([FromBody] NotificationRequest req)
         {
@@ -242,6 +328,7 @@ namespace Manager_de_Competitii.Controllers
 
             var notification = new InviteNotification(sender);
             notification.Notify(req.Target ?? "All", req.Message);
+            _notificationsCount++;
             return Ok(new { Message = $"Sent via {req.Channel}", Channel = req.Channel, Payload = req.Message });
         }
 
@@ -376,6 +463,21 @@ namespace Manager_de_Competitii.Controllers
             if (cfg == null) return BadRequest();
             _config = cfg;
             return Ok(_config);
+        }
+    }
+
+    [ApiController]
+    [Route("api/[controller]")]
+    public class StatsController : ControllerBase
+    {
+        [HttpGet]
+        public IActionResult GetStats()
+        {
+            return Ok(new { 
+                Competitions = PatternsController._competitionsCount, 
+                Matches = 3, // based on the stub items length
+                Notifications = NotificationsController._notificationsCount 
+            });
         }
     }
 }

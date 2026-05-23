@@ -1,0 +1,78 @@
+@page "/locations"
+@using Client.Services
+@inject PatternApiClient Api
+
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <h2>Create Location</h2>
+        <div class="mb-3">
+            <label for="locationName" class="form-label">Location Name</label>
+            <input id="locationName" class="form-control" @bind="_newLocation" />
+        </div>
+        <button class="btn btn-success" @onclick="AddLocation" disabled="@_loading">Add Location</button>
+        
+        @if (_loading)
+        {
+            <div class="mt-2 text-muted">Processing...</div>
+        }
+    </div>
+
+    <div class="col-md-6">
+        <h2>Created Locations</h2>
+        @if (_locations == null)
+        {
+            <div class="text-muted">Loading locations...</div>
+        }
+        else if (!_locations.Any())
+        {
+            <div class="alert alert-secondary">No locations created yet.</div>
+        }
+        else
+        {
+            <ul class="list-group mt-2">
+                @foreach (var loc in _locations)
+                {
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span class="fw-bold">@loc.Name</span>
+                        <button class="btn btn-danger btn-sm" @onclick="() => DeleteLocation(loc.Name)" disabled="@_loading">Delete</button>
+                    </li>
+                }
+            </ul>
+        }
+    </div>
+</div>
+
+@code {
+    List<PatternApiClient.LocationDto>? _locations;
+    string _newLocation = "";
+    bool _loading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLocations();
+    }
+
+    async Task LoadLocations()
+    {
+        _locations = await Api.ListLocationsAsync();
+    }
+
+    async Task AddLocation()
+    {
+        if (string.IsNullOrWhiteSpace(_newLocation)) return;
+        
+        _loading = true;
+        await Api.AddVenueAsync(_newLocation);
+        _newLocation = "";
+        await LoadLocations();
+        _loading = false;
+    }
+
+    async Task DeleteLocation(string name)
+    {
+        _loading = true;
+        await Api.DeleteVenueAsync(name);
+        await LoadLocations();
+        _loading = false;
+    }
+}

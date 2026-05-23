@@ -13,7 +13,7 @@
 
     public interface IBuilderApi
     {
-        Task<string> BuildCompetitionAsync(string name, int organizerId = 0);
+        Task<string> BuildCompetitionAsync(string name, string sport, string type, string location, int organizerId = 0);
     }
 
     public interface ISimpleFactoryApi

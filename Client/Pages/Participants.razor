@@ -3,39 +3,102 @@
 @using Client.Shared
 @inject PatternApiClient Api
 
-<h2>Create Participant</h2>
-<div class="mb-3">
-    <label for="kind" class="form-label">Kind</label>
-    <select id="kind" class="form-control" @bind="_kind">
-        <option value="">Select kind</option>
-        <option value="Player">Player</option>
-        <option value="Team">Team</option>
-        <option value="Coach">Coach</option>
-    </select>
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <h2>Create Participant</h2>
+        <div class="mb-3">
+            <label for="pname" class="form-label">Name</label>
+            <input id="pname" class="form-control" @bind="_name" />
+        </div>
+        <div class="mb-3">
+            <label for="kind" class="form-label">Type</label>
+            <select id="kind" class="form-control" @bind="_kind">
+                <option value="">Select Type</option>
+                <option value="Player">Player</option>
+                <option value="Team">Team</option>
+            </select>
+        </div>
+        <button class="btn btn-primary" @onclick="Create" disabled="@_loading">Create</button>
+        @if (_loading)
+        {
+            <LoadingSpinner />
+        }
+        @if (!string.IsNullOrEmpty(_result))
+        {
+            <div class="alert alert-success mt-3">@_result</div>
+        }
+    </div>
+
+    <div class="col-md-6">
+        <h2>Existing Participants</h2>
+        @if (_participants == null)
+        {
+            <LoadingSpinner />
+        }
+        else if (!_participants.Any())
+        {
+            <div class="alert alert-secondary">No participants created yet.</div>
+        }
+        else
+        {
+            <table class="table table-striped table-hover mt-2">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th width="100">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in _participants)
+                    {
+                        <tr>
+                            <td>@p.Name</td>
+                            <td>@p.Kind</td>
+                            <td>
+                                <button class="btn btn-danger btn-sm" @onclick="() => Delete(p.Name)">Delete</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
 </div>
-<div class="mb-3">
-    <label for="pname" class="form-label">Name</label>
-    <input id="pname" class="form-control" @bind="_name" />
-</div>
-<button class="btn btn-primary" @onclick="Create" disabled="@_loading">Create</button>
-@if (_loading)
-{
-    <LoadingSpinner />
-}
-@if (!string.IsNullOrEmpty(_result))
-{
-    <div class="alert alert-success mt-3">@_result</div>
-}
 
 @code {
     string _kind = "";
     string _name = "";
     string? _result;
     bool _loading;
+    
+    List<PatternApiClient.ParticipantDto>? _participants;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadParticipants();
+    }
+    
+    async Task LoadParticipants()
+    {
+        _participants = await Api.ListParticipantsAsync();
+    }
+
     async Task Create()
     {
+        if (string.IsNullOrWhiteSpace(_name) || string.IsNullOrWhiteSpace(_kind)) return;
+        
         _loading = true;
         _result = await Api.CreateParticipantAsync(_kind, _name);
         _loading = false;
+        
+        _name = "";
+        await LoadParticipants();
+    }
+    
+    async Task Delete(string name)
+    {
+        await Api.DeleteParticipantAsync(name);
+        await LoadParticipants();
     }
 }

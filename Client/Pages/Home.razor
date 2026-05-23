@@ -5,56 +5,64 @@
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 
-<PageTitle>Home Dashboard</PageTitle>
+<PageTitle>Dashboards</PageTitle>
 
 <div class="container py-4">
-    <h1 class="mb-4">Dashboard</h1>
-    <div class="row g-3 mb-4">
-        <div class="col-6 col-md-3">
-            <div class="card text-center">
+    <h1 class="mb-4 text-center">Dashboard</h1>
+    <div class="row g-3 mb-4 justify-content-center">
+        <div class="col-12 col-md-4">
+            <div class="card text-center shadow-sm">
                 <div class="card-body">
-                    <h5 class="card-title">Competitions</h5>
-                    <p class="display-6">@_competitions</p>
+                    <h5 class="card-title text-muted">Competitions</h5>
+                    <p class="display-5 fw-bold text-primary">@_competitions</p>
                 </div>
             </div>
         </div>
-        <div class="col-6 col-md-3">
-            <div class="card text-center">
+        <div class="col-12 col-md-4">
+            <div class="card text-center shadow-sm">
                 <div class="card-body">
-                    <h5 class="card-title">Upcoming Matches</h5>
-                    <p class="display-6">@_matches</p>
+                    <h5 class="card-title text-muted">Upcoming Matches</h5>
+                    <p class="display-5 fw-bold text-success">@_matches</p>
                 </div>
             </div>
         </div>
-        <div class="col-6 col-md-3">
-            <div class="card text-center">
+        <div class="col-12 col-md-4">
+            <div class="card text-center shadow-sm">
                 <div class="card-body">
-                    <h5 class="card-title">Notifications</h5>
-                    <p class="display-6">@_notifications</p>
+                    <h5 class="card-title text-muted">Notifications</h5>
+                    <p class="display-5 fw-bold text-info">@_notifications</p>
                 </div>
             </div>
         </div>
+    </div>
+    <div class="row justify-content-center mb-5">
+        <div class="col-12 col-md-4 text-center">
+            <a class="btn btn-primary w-100 mb-2 shadow-sm" href="/competitions">Build Competition</a>
+        </div>
+        <div class="col-12 col-md-4 text-center">
+            <a class="btn btn-info w-100 mb-2 text-white shadow-sm" href="/notifications">Send Notification</a>
+        </div>
+    </div>
 
-    </div>
-    <div class="row g-3 mb-5">
-        <div class="col-12 col-md-6">
-            <a class="btn btn-primary w-100 mb-2" href="/competitions">Build Competition</a>
+    <div class="card shadow-sm mx-auto" style="max-width: 600px;">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">⚙️ Advanced Settings</h5>
         </div>
-        <div class="col-12 col-md-6">
-            <a class="btn btn-info w-100 mb-2" href="/notifications">Send Notification</a>
+        <div class="card-body">
+            <p class="text-muted small">Update the backend URL here if you deploy the app to a different environment.</p>
+            <div class="mb-3">
+                <label for="baseUrl" class="form-label fw-bold">API Base URL</label>
+                <div class="input-group">
+                    <input id="baseUrl" class="form-control" placeholder="https://..." @bind="_baseUrl" />
+                    <button class="btn btn-outline-primary" @onclick="Save">Save Settings</button>
+                </div>
+            </div>
+            @if (_saved)
+            {
+                <div class="alert alert-success mt-3 py-2 mb-0 text-center">Settings changed successfully!</div>
+            }
         </div>
     </div>
-
-    <h2>API Settings</h2>
-    <div class="mb-3">
-        <label for="baseUrl" class="form-label">API Base URL</label>
-        <input id="baseUrl" class="form-control" @bind="_baseUrl" />
-    </div>
-    <button class="btn btn-primary" @onclick="Save">Save Settings</button>
-    @if (_saved)
-    {
-        <div class="alert alert-success mt-3">Settings Saved!</div>
-    }
 </div>
 
 @code {
@@ -68,11 +76,14 @@
     protected override async Task OnInitializedAsync()
     {
         _baseUrl = Api.BaseUrl;
-
-        // Simulate summary data
-        _competitions = 3;
-        _matches = 5;
-        _notifications = 2;
+        
+        var stats = await Api.GetStatsAsync();
+        if (stats != null)
+        {
+            _competitions = stats.Competitions;
+            _matches = stats.Matches;
+            _notifications = stats.Notifications;
+        }
     }
 
     async Task Save()

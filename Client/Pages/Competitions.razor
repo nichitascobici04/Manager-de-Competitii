@@ -2,29 +2,50 @@
 @using Client.Services
 @inject PatternApiClient Api
 
-<h2>Build Competition & Configure Tournament</h2>
-<div class="mb-3">
-    <label for="tournamentType" class="form-label">Tournament Type (Rounds)</label>
-    <select id="tournamentType" class="form-control" @bind="_type">
-        <option value="Knockout">Knockout</option>
-        <option value="Round-robin">Round-robin</option>
-    </select>
-</div>
-<button class="btn btn-secondary mb-3" @onclick="Configure" disabled="@_loading2">Configure Format</button>
-@if (!string.IsNullOrEmpty(_configResult))
-{
-    <div class="alert alert-secondary mt-1">@_configResult</div>
-}
+<h2>Competition Creator</h2>
 
 <div class="mb-3">
     <label for="compName" class="form-label">Competition Name</label>
     <input id="compName" class="form-control" @bind="_name" />
 </div>
+
+<div class="mb-3">
+    <label for="compSport" class="form-label">Sport</label>
+    <select id="compSport" class="form-control" @bind="_sport">
+        <option value="Football">Football</option>
+        <option value="Tennis">Tennis</option>
+    </select>
+</div>
+
+<div class="mb-3">
+    <label for="tournamentType" class="form-label">Tournament Type</label>
+    <select id="tournamentType" class="form-control" @bind="_type">
+        <option value="Knockout">Knockout</option>
+        <option value="Round-robin">Round-robin</option>
+    </select>
+</div>
+
+<div class="mb-3">
+    <label for="compLocation" class="form-label">Location</label>
+    <select id="compLocation" class="form-control" @bind="_location">
+        <option value="">-- Select a Location --</option>
+        @if (_locations != null)
+        {
+            @foreach (var loc in _locations)
+            {
+                <option value="@loc.Name">@loc.Name</option>
+            }
+        }
+    </select>
+</div>
+
 <div class="mb-3">
     <label for="organizerId" class="form-label">Organizer ID</label>
     <input id="organizerId" type="number" class="form-control" @bind="_organizerId" />
 </div>
+
 <button class="btn btn-primary mb-3" @onclick="BuildAndCreate" disabled="@_loading">Build Competition</button>
+
 @if (_loading)
 {
     <LoadingSpinner />
@@ -33,63 +54,43 @@
 {
     <div class="alert alert-success mt-3">@_result</div>
 }
-@if (!string.IsNullOrEmpty(_roundsResult))
-{
-    <div class="alert alert-info mt-3">@_roundsResult</div>
-}
-
-<h3 class="mt-5">Start Competition</h3>
-<div class="mb-3">
-    <label for="startOrgId" class="form-label">Competition ID</label>
-    <input id="startOrgId" type="number" class="form-control" @bind="_startOrgId" />
-</div>
-<button class="btn btn-success me-2" @onclick="StartCompetition" disabled="@_loading3">Start</button>
-@if (_loading3)
-{
-    <LoadingSpinner />
-}
-@if (!string.IsNullOrEmpty(_startResult))
-{
-    <div class="alert alert-success mt-3">@_startResult</div>
-}
 
 @code {
-    string _type = "Knockout";
-    string? _configResult;
-    string? _roundsResult;
-
     string _name = "";
-    string? _result;
-    bool _loading;
+    string _sport = "Football";
+    string _type = "Knockout";
+    string _location = "";
     int _organizerId;
-    bool _loading2;
 
-    int _startOrgId;
-    string? _startResult;
-    bool _loading3;
+    bool _loading;
+    string? _result;
+    
+    List<PatternApiClient.LocationDto> _locations = new();
 
-    async Task Configure()
+    protected override async Task OnInitializedAsync()
     {
-        _loading2 = true;
-        _configResult = await Api.ConfigureTournamentAsync(_type);
-        _loading2 = false;
+        var locations = await Api.ListLocationsAsync();
+        if (locations != null)
+        {
+            _locations = locations;
+        }
     }
 
     async Task BuildAndCreate()
     {
         _loading = true;
-        _result = await Api.BuildCompetitionAsync(_name, _organizerId);
+        // The configure format is integrated inside the Build/Create process.
+        await Api.ConfigureTournamentAsync(_type);
+        
+        _result = await Api.BuildCompetitionAsync(_name, _sport, _type, _location, _organizerId);
+        
         if (!string.IsNullOrEmpty(_result) && !_result.Contains("error", StringComparison.OrdinalIgnoreCase))
         {
-            _roundsResult = await Api.GenerateRoundsAsync(_type);
+            await Api.GenerateRoundsAsync(_type);
         }
         _loading = false;
-    }
-
-    async Task StartCompetition()
-    {
-        _loading3 = true;
-        _startResult = await Api.StartCompetitionAsync(_startOrgId);
-        _loading3 = false;
+        
+        // Reset form slightly
+        _name = "";
     }
 }

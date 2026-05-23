@@ -1,0 +1,200 @@
+@page "/manager"
+@using Client.Services
+@inject PatternApiClient Api
+
+<h2>Competition Manager</h2>
+
+@if (_competitions == null)
+{
+    <LoadingSpinner />
+}
+else if (!_competitions.Any())
+{
+    <div class="alert alert-info">No competitions found. Start by creating one in the Creator page.</div>
+}
+else
+{
+    <ul class="list-group mb-4">
+        @foreach (var comp in _competitions)
+        {
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>@comp.Name</strong> <span class="badge bg-secondary ms-2">@comp.Sport</span>
+                    @if (comp.Started)
+                    {
+                        <span class="badge bg-success ms-2">Started</span>
+                    }
+                </div>
+                <div>
+                    <button class="btn btn-outline-primary btn-sm me-2" @onclick="() => ManageComp(comp.Id)">Manage</button>
+                    @if (!comp.Started)
+                    {
+                        <button class="btn btn-success btn-sm" @onclick="() => StartComp(comp.Id)">Start</button>
+                    }
+                </div>
+            </li>
+        }
+    </ul>
+
+    @if (_selectedComp != null)
+    {
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-primary text-white d-flex justify-content-between">
+                <h5 class="mb-0">Managing: @_selectedComp.Name</h5>
+                <button class="btn btn-close btn-close-white" @onclick="() => _selectedComp = null"></button>
+            </div>
+            <div class="card-body">
+                @if (!_selectedComp.Started)
+                {
+                    <h6 class="text-secondary fw-bold mb-3">Settings</h6>
+                    <div class="mb-3">
+                        <label class="form-label">Sport</label>
+                        <select class="form-control" @bind="_selectedComp.Sport">
+                            <option value="Football">Football</option>
+                            <option value="Tennis">Tennis</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tournament Type</label>
+                        <select class="form-control" @bind="_selectedComp.Type">
+                            <option value="Knockout">Knockout</option>
+                            <option value="Round-robin">Round-robin</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Location</label>
+                        <select class="form-control" @bind="_selectedComp.Location">
+                            <option value="">-- Select --</option>
+                            @if (_locations != null)
+                            {
+                                foreach (var loc in _locations)
+                                {
+                                    <option value="@loc.Name">@loc.Name</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <button class="btn btn-primary btn-sm mb-4" @onclick="UpdateComp">Save Settings</button>
+                }
+
+                <h6 class="text-secondary fw-bold mb-2">Participants</h6>
+                <ul class="list-group mb-3">
+                    @foreach (var pName in _selectedComp.Participants)
+                    {
+                        <li class="list-group-item py-1">@pName</li>
+                    }
+                </ul>
+                
+                @if (!_selectedComp.Started)
+                {
+                    <div class="input-group mb-4">
+                        <select class="form-control" @bind="_participantToAdd">
+                            <option value="">-- Attach Participant --</option>
+                            @if (_participants != null)
+                            {
+                                // Football = Team only, Tennis = Player only
+                                var filtered = _participants.Where(p => (_selectedComp.Sport == "Football" && p.Kind == "Team") || (_selectedComp.Sport == "Tennis" && p.Kind == "Player"));
+                                foreach (var p in filtered)
+                                {
+                                    <option value="@p.Name">@p.Name (@p.Kind)</option>
+                                }
+                            }
+                        </select>
+                        <button class="btn btn-outline-success" @onclick="AttachParticipant">Add</button>
+                    </div>
+                }
+                else
+                {
+                    <h6 class="text-secondary fw-bold mb-2 border-top pt-3">Matches Schedule</h6>
+                    @if (_matches != null && _matches.CompetitionId == _selectedComp.Id)
+                    {
+                        <ul class="list-group">
+                            @foreach (var m in _matches.Matches)
+                            {
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>@m.Name</span>
+                                    <span class="text-muted small">@m.Stadium</span>
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <LoadingSpinner />
+                    }
+                }
+            </div>
+        </div>
+    }
+}
+
+@code {
+    List<PatternApiClient.CompetitionDto>? _competitions;
+    List<PatternApiClient.LocationDto>? _locations;
+    List<PatternApiClient.ParticipantDto>? _participants;
+    
+    PatternApiClient.CompetitionDto? _selectedComp;
+    string _participantToAdd = "";
+    PatternApiClient.IteratedMatchesDto? _matches;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+    
+    async Task LoadData()
+    {
+        _competitions = await Api.ListCompetitionsAsync();
+        _locations = await Api.ListLocationsAsync();
+        _participants = await Api.ListParticipantsAsync();
+    }
+
+    void ManageComp(int id)
+    {
+        _selectedComp = _competitions?.FirstOrDefault(c => c.Id == id);
+        _matches = null;
+        if (_selectedComp != null && _selectedComp.Started)
+        {
+            _ = FetchMatches(_selectedComp.Id);
+        }
+    }
+    
+    async Task FetchMatches(int compId)
+    {
+        _matches = await Api.IterateMatchesAsync(compId);
+        StateHasChanged();
+    }
+
+    async Task StartComp(int id)
+    {
+        await Api.StartCompetitionAsync(id);
+        await LoadData();
+        if (_selectedComp != null && _selectedComp.Id == id)
+        {
+            _selectedComp.Started = true;
+            await FetchMatches(id);
+        }
+    }
+
+    async Task UpdateComp()
+    {
+        if (_selectedComp != null)
+        {
+            await Api.UpdateCompetitionAsync(_selectedComp.Id, _selectedComp.Sport, _selectedComp.Type, _selectedComp.Location);
+            await LoadData();
+            // Refresh _selectedComp reference after reload
+            _selectedComp = _competitions?.FirstOrDefault(c => c.Id == _selectedComp.Id);
+        }
+    }
+    
+    async Task AttachParticipant()
+    {
+        if (_selectedComp != null && !string.IsNullOrWhiteSpace(_participantToAdd))
+        {
+            await Api.AttachParticipantAsync(_selectedComp.Id, _participantToAdd);
+            _participantToAdd = "";
+            await LoadData();
+            _selectedComp = _competitions?.FirstOrDefault(c => c.Id == _selectedComp.Id);
+        }
+    }
+}
