@@ -1,6 +1,7 @@
 @page "/competitions"
 @using Client.Services
 @inject PatternApiClient Api
+@inject NavigationManager Nav
 
 <h2>Competition Creator</h2>
 
@@ -132,8 +133,14 @@
             await Api.GenerateRoundsAsync(_type);
         }
         _loading = false;
-        
-        // Reset form slightly
-        _name = "";
+
+        if (!string.IsNullOrEmpty(_result) && !_result.Contains("error", StringComparison.OrdinalIgnoreCase))
+        {
+            Nav.NavigateTo("/manager");
+        }
+        else
+        {
+            _name = "";
+        }
     }
 }
