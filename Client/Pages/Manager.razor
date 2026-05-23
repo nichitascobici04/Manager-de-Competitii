@@ -26,10 +26,11 @@ else
                     }
                 </div>
                 <div>
-                    <button class="btn btn-outline-primary btn-sm me-2" @onclick="() => ManageComp(comp.Id)">Manage</button>
+                    <a class="btn btn-primary btn-sm me-2" href="/competition/@comp.Id">View</a>
+                    <button class="btn btn-outline-secondary btn-sm me-2" @onclick="() => ManageComp(comp.Id)">Settings</button>
                     @if (!comp.Started)
                     {
-                        <button class="btn btn-success btn-sm" @onclick="() => StartComp(comp.Id)">Start</button>
+                        <button class="btn btn-secondary btn-sm" @onclick="() => DuplicateComp(comp.Id)">Duplicate</button>
                     }
                 </div>
             </li>
@@ -174,6 +175,12 @@ else
             _selectedComp.Started = true;
             await FetchMatches(id);
         }
+    }
+
+    async Task DuplicateComp(int id)
+    {
+        await Api.DuplicateCompetitionAsync(id);
+        await LoadData();
     }
 
     async Task UpdateComp()

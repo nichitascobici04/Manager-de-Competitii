@@ -6,6 +6,9 @@ namespace Manager_de_Competitii.Models.CompetitionBuilder
     public interface ICompetitionBuilder
     {
         void SetName(string name);
+        void SetSport(string sport);
+        void SetType(string type);
+        void SetLocation(string location);
         void SetParticipants(List<Participant> participants);
         void SetStages(List<Stage> stages);
         Competition GetCompetition();

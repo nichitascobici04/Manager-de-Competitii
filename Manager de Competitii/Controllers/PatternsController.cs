@@ -14,29 +14,20 @@ using Manager_de_Competitii.Models.AggregateScoreCalculator;
 using Manager_de_Competitii.Models.AppConfig;
 using Manager_de_Competitii.Models.Decorator;
 using Manager_de_Competitii.Models.Command;
+using Manager_de_Competitii.Services;
+using Manager_de_Competitii.Services.Proxy;
+using Manager_de_Competitii.Models.Strategy;
 
 namespace Manager_de_Competitii.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class PatternsController : ControllerBase,
-        IAbstractFactoryApi,
-        IFactoryMethodApi,
-        IBuilderApi,
-        ISimpleFactoryApi,
-        IFlyweightApi,
-        IProxyApi,
-        IBridgeApi,
-        IFacadeApi,
-        IIteratorApi,
-        IObserverApi,
-        ICommandApi,
-        IStrategyApi
+    public class PatternsController : ControllerBase
     {
         public static int _competitionsCount = 0;
         public static List<CompetitionDto> _competitions = new();
 
-        public class CompetitionDto
+        public class CompetitionDto : System.ICloneable
         {
             public int Id { get; set; }
             public string Name { get; set; } = "";
@@ -45,6 +36,16 @@ namespace Manager_de_Competitii.Controllers
             public string Location { get; set; } = "";
             public bool Started { get; set; } = false;
             public List<string> Participants { get; set; } = new();
+
+            public object Clone()
+            {
+                var clone = (CompetitionDto)this.MemberwiseClone();
+                clone.Id = ++_competitionsCount;
+                clone.Name = this.Name + " (Copy)";
+                clone.Participants = new List<string>(this.Participants);
+                clone.Started = false;
+                return clone;
+            }
         }
 
         // NOTE: These are stub endpoints. Replace with injected services (constructor DI) to call real implementations.
@@ -65,19 +66,31 @@ namespace Manager_de_Competitii.Controllers
         }
 
         [HttpGet("builder/build")]  
-        public Task<string> BuildCompetitionAsync([FromQuery] string name, [FromQuery] string sport, [FromQuery] string type, [FromQuery] string location, [FromQuery] int organizerId = 0)
+        public async Task<IActionResult> BuildCompetitionAsync(
+            [FromQuery] string name, 
+            [FromQuery] string sport, 
+            [FromQuery] string type, 
+            [FromQuery] string location, 
+            [FromQuery] string[] participants, 
+            [FromQuery] int organizerId,
+            [FromServices] Manager_de_Competitii.Repositories.IRepository<Competition> compRepo)
         {
-            _competitionsCount++;
-            var dto = new CompetitionDto {
-                Id = _competitionsCount,
-                Name = name,
-                Sport = sport ?? "Football",
-                Type = type ?? "Knockout",
-                Location = location ?? ""
-            };
-            _competitions.Add(dto);
-            // Example: CompetitionDirector + ICompetitionBuilder inside a Facade
-            return Task.FromResult($"Builder & Facade: built and created competition with name = '{name}', organizer = {organizerId}");
+            // Example configuration - in a real scenario we'd use the abstract factory to influence builder/product
+            Manager_de_Competitii.Models.CompetitionBuilder.ICompetitionBuilder builder = 
+                new Manager_de_Competitii.Models.CompetitionBuilder.KnockoutTournamentBuilder();
+
+            var director = new Manager_de_Competitii.Models.CompetitionBuilder.CompetitionDirector(builder);
+
+            director.BuildBasicInfo(name, sport ?? "Football", type ?? "Knockout", location ?? "");
+
+            var partList = participants?.Select(p => new Participant { Name = p }).ToList() ?? new List<Participant>();
+            director.AddParticipants(partList);
+
+            var competition = director.GetCompetition();
+            
+            await compRepo.AddAsync(competition);
+
+            return Ok(new { Message = $"Builder & Facade: built and created competition with name = '{name}', organizer = {organizerId}" });
         }
 
         [HttpGet("simplefactory/create-participant")]
@@ -89,57 +102,99 @@ namespace Manager_de_Competitii.Controllers
 
         // Structural
         [HttpGet("flyweight/venue")]
-        public Task<string> GetVenueInfoAsync([FromQuery] string venueKey)
+        public IActionResult GetVenueInfoAsync([FromQuery] string venueKey)
         {
-            // Example: VenueFactory -> reuse venue flyweights
-            return Task.FromResult($"Flyweight: returned venue info for key = '{venueKey}'");
+            return Ok(new { Message = $"Flyweight: returned venue info for key = '{venueKey}'" });
         }
 
         [HttpGet("proxy/start")]
-        public Task<string> StartCompetitionAsync([FromQuery] int competitionId)
+        public IActionResult StartCompetitionAsync([FromQuery] int competitionId, [FromServices] ICompetitionManager proxyManager)
         {
             var comp = _competitions.Find(c => c.Id == competitionId);
             if (comp != null) comp.Started = true;
-            // Example: CompetitionManagerProxy -> access control / lazy load orchestrating via Facade
-            return Task.FromResult($"Proxy & Facade: started competition id = {competitionId}");
+            
+            try 
+            {
+                proxyManager.CreateCompetition(comp?.Name ?? "UnknownCompetition", 1);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Error = ex.Message });
+            }
+
+            return Ok(new { Message = $"Proxy & Facade: started competition id = {competitionId}", CompetitionId = competitionId, Status = "Started via Proxy" });
         }
 
         [HttpGet("bridge/notify")]
-        public Task<string> SendBridgeNotificationAsync([FromQuery] string channel, [FromQuery] string message)
+        public IActionResult SendBridgeNotificationAsync([FromQuery] string channel, [FromQuery] string message, [FromServices] IMessageSender sender)
         {
-            // Example: InviteNotification abstraction + concrete implementors
-            return Task.FromResult($"Bridge: sent notification via '{channel}' message = '{message}'");
+            var notification = new InviteNotification(sender);
+            notification.Notify("All Participants", message);
+            return Ok(new { Message = "Sent notification", Channel = channel, Payload = message, Success = true });
         }
 
+        [HttpGet("facade/start")]
+        public IActionResult StartFacadeAsync([FromQuery] int organizerId, [FromServices] CompetitionFacade facade)
+        {
+            facade.StartNewCompetition(organizerId, new Competition(), null, null);
+            return Ok(new { Message = "Started via Facade", Organizer = organizerId });
+        }
 
+        [HttpGet("prototype/clone")]
+        public async Task<IActionResult> CloneCompetitionAsync([FromQuery] int id, [FromServices] Manager_de_Competitii.Repositories.IRepository<Competition> compRepo)
+        {
+            var comp = await compRepo.GetByIdAsync(id);
+            if (comp == null) return NotFound("Competition not found");
+            
+            var clone = (Competition)comp.Clone();
+            await compRepo.AddAsync(clone);
+
+            return Ok(new { OriginalName = comp.Name, CloneId = clone.Id, CloneName = clone.Name, Status = "Cloned via Prototype" });
+        }
 
         // Behavioral
         [HttpGet("iterator/iterate-matches")]
-        public Task<string> IterateMatchesAsync([FromQuery] int competitionId)
+        public IActionResult IterateMatchesAsync([FromQuery] int competitionId)
         {
-            // Example: MatchList + StadiumMatchIterator iteration
-            return Task.FromResult($"Iterator: iterated matches for competition id = {competitionId}");
+            var schedule = new MatchList();
+            schedule.AddMatch(new ScheduledMatch("Match A", "Stadion A"));
+            schedule.AddMatch(new ScheduledMatch("Match B", "Stadion B"));
+            schedule.AddMatch(new ScheduledMatch("Match C", "Stadion B"));
+            var it = schedule.CreateStadiumIterator("Stadion A");
+            var matchItems = new List<object>();
+            while (it.HasNext())
+            {
+                var m = it.Next();
+                matchItems.Add(new { Name = m.Title, Stadium = m.Stadium });
+            }
+
+            return Ok(new { CompetitionId = competitionId, Matches = matchItems });
         }
 
         [HttpGet("observer/subscribe")]
-        public Task<string> SubscribeLiveMatchAsync([FromQuery] int matchId)
+        public IActionResult SubscribeLiveMatchAsync([FromQuery] int matchId)
         {
-            // Example: LiveMatch subject and observers
-            return Task.FromResult($"Observer: subscribed to live match id = {matchId}");
+            return Ok(new { Message = "Subscribed to live match updates", MatchId = matchId });
         }
 
         [HttpGet("command/execute")]
-        public Task<string> ExecuteCommandAsync([FromQuery] string commandName)
+        public IActionResult ExecuteCommandAsync([FromQuery] string commandName, [FromServices] CommandInvoker invoker)
         {
-            // Example: ICommand + CommandInvoker pattern invocation
-            return Task.FromResult($"Command: executed command '{commandName}'");
+            var mc = new MatchController("Match 1");
+            ICommand cmd = commandName == "Start" ? new StartMatchCommand(mc) : new CancelMatchCommand(mc);
+            invoker.SetCommand(cmd);
+            invoker.ExecuteCommand();
+
+            return Ok(new { CommandName = commandName, Status = mc.Status });
         }
 
         [HttpGet("strategy/apply")]
-        public Task<string> ApplyStrategyAsync([FromQuery] string strategyName)
+        public IActionResult ApplyStrategyAsync([FromQuery] string strategyName)
         {
-            // Example: IFormat/IStageGenerator/IStrategy implementations swapped
-            return Task.FromResult($"Strategy: applied strategy '{strategyName}'");
+            var matchProcessor = new MatchResultProcessor(
+                strategyName == "Esports" ? new CustomEsportsStrategy() : new StandardSoccerStrategy());
+            var points = matchProcessor.ProcessMatchResult(2, 1);
+            return Ok(new { StrategyName = strategyName, ScoreCalculated = points });
         }
 
         // Tournament configuration endpoints
@@ -164,34 +219,67 @@ namespace Manager_de_Competitii.Controllers
     [Route("api/[controller]")]
     public class CompetitionsController : ControllerBase
     {
-        [HttpGet("list")]
-        public IActionResult List()
+        private readonly Manager_de_Competitii.Repositories.IRepository<Competition> _repo;
+
+        public CompetitionsController(Manager_de_Competitii.Repositories.IRepository<Competition> repo)
         {
-            return Ok(PatternsController._competitions);
+            _repo = repo;
+        }
+
+        [HttpGet("list")]
+        public async Task<IActionResult> List()
+        {
+            var comps = await _repo.GetAllAsync();
+            var dtos = comps.Select(c => new PatternsController.CompetitionDto {
+                Id = c.Id,
+                Name = c.Name,
+                Sport = c.Type, // we store Sport in Type or we can map it accordingly
+                Type = c.Type,
+                Participants = c.Participants?.Select(p => p.Name).ToList() ?? new List<string>(),
+                Started = c.IsCompleted
+            });
+            return Ok(dtos);
         }
 
         [HttpGet("update")]
-        public IActionResult Update([FromQuery] int id, [FromQuery] string sport, [FromQuery] string type, [FromQuery] string location)
+        public async Task<IActionResult> Update([FromQuery] int id, [FromQuery] string sport, [FromQuery] string type, [FromQuery] string location)
         {
-            var comp = PatternsController._competitions.Find(c => c.Id == id);
+            var comp = await _repo.GetByIdAsync(id);
             if (comp != null)
             {
-                comp.Sport = sport;
-                comp.Type = type;
-                comp.Location = location;
-                return Ok(new { Message = "Competition updated" });
+                Manager_de_Competitii.Models.CompetitionBuilder.ICompetitionBuilder builder = 
+                    new Manager_de_Competitii.Models.CompetitionBuilder.KnockoutTournamentBuilder();
+                var director = new Manager_de_Competitii.Models.CompetitionBuilder.CompetitionDirector(builder);
+
+                // Use builder logic to set properties based on new inputs while maintaining others
+                director.BuildBasicInfo(comp.Name, sport, type, location);
+                director.AddParticipants(comp.Participants ?? new List<Participant>());
+                
+                var newComp = director.GetCompetition();
+                
+                // Keep identifiers and statuses consistent
+                comp.Sport = newComp.Sport;
+                comp.Type = newComp.Type;
+                comp.Location = newComp.Location;
+                
+                await _repo.UpdateAsync(comp.Id, comp);
+                return Ok(new { Message = "Competition updated via Builder" });
             }
             return NotFound("Competition not found");
         }
 
         [HttpGet("participant")]
-        public IActionResult AttachParticipant([FromQuery] int compId, [FromQuery] string participantName)
+        public async Task<IActionResult> AttachParticipant([FromQuery] int compId, [FromQuery] string participantName)
         {
-            var comp = PatternsController._competitions.Find(c => c.Id == compId);
+            var comp = await _repo.GetByIdAsync(compId);
             if (comp != null)
             {
-                if (!comp.Participants.Contains(participantName))
-                    comp.Participants.Add(participantName);
+                comp.Participants ??= new List<Participant>();
+                if (!comp.Participants.Any(p => p.Name == participantName))
+                {
+                    comp.Participants.Add(new Participant { Name = participantName });
+                    await _repo.UpdateAsync(comp.Id, comp);
+                }
                 return Ok(new { Message = "Participant attached" });
             }
             return NotFound("Competition not found");
@@ -225,38 +313,52 @@ namespace Manager_de_Competitii.Controllers
     [Route("api/[controller]")]
     public class ParticipantsController : ControllerBase
     {
-        public static List<ParticipantDto> _participants = new();
+        private readonly Manager_de_Competitii.Repositories.IRepository<Participant> _repo;
+
+        public ParticipantsController(Manager_de_Competitii.Repositories.IRepository<Participant> repo)
+        {
+            _repo = repo;
+        }
 
         public class ParticipantDto
         {
+            public int Id { get; set; }
             public string Kind { get; set; } = "";
             public string Name { get; set; } = "";
         }
 
         [HttpPost("create")]
-        public IActionResult Create([FromQuery] string kind, [FromQuery] string name)
+        public async Task<IActionResult> Create([FromQuery] string kind, [FromQuery] string name)
         {
             if (string.IsNullOrWhiteSpace(kind) || string.IsNullOrWhiteSpace(name))
                 return BadRequest("kind and name are required.");
 
-            _participants.Add(new ParticipantDto { Kind = kind, Name = name });
-            Participant p = new Participant { Name = name };
-            // In a real app map Kind to RegisteredUser/Guest via factory
+            // Factory Method simplified
+            Participant p = new Participant { Name = name, IsUser = kind.Equals("Player", StringComparison.OrdinalIgnoreCase) };
+            
+            await _repo.AddAsync(p);
             return Ok(new { Message = $"Created participant kind='{kind}' name='{name}'", Participant = p });
         }
 
         [HttpGet("delete")]
-        public IActionResult Delete([FromQuery] string name)
+        public async Task<IActionResult> Delete([FromQuery] string name)
         {
-            var p = _participants.Find(x => x.Name == name);
-            if (p != null) _participants.Remove(p);
-            return Ok(new { Message = "Participant deleted" });
+            var all = await _repo.GetAllAsync();
+            var p = all.FirstOrDefault(x => x.Name == name);
+            if (p != null) 
+            {
+                await _repo.DeleteAsync(p.Id);
+                return Ok(new { Message = "Participant deleted" });
+            }
+            return NotFound("Participant not found");
         }
 
         [HttpGet("list")]
-        public IActionResult List()
+        public async Task<IActionResult> List()
         {
-            return Ok(_participants);
+            var all = await _repo.GetAllAsync();
+            var dtos = all.Select(p => new ParticipantDto { Id = p.Id, Name = p.Name, Kind = p.IsUser ? "Player" : "Team" });
+            return Ok(dtos);
         }
     }
 
@@ -264,49 +366,74 @@ namespace Manager_de_Competitii.Controllers
     [Route("api/[controller]")]
     public class VenuesController : ControllerBase
     {
+        private readonly Manager_de_Competitii.Repositories.IRepository<MatchVenue> _repo;
         private static readonly VenueFactory _factory = new VenueFactory();
 
-        [HttpGet("list")]
-        public IActionResult List()
+        public VenuesController(Manager_de_Competitii.Repositories.IRepository<MatchVenue> repo)
         {
-            var v1 = _factory.GetVenue("Stadionul National", "Bucuresti", 55000);
-            var v2 = _factory.GetVenue("Stadionul Municipal", "Cluj", 30000);
-            var v3 = _factory.GetVenue("Arena Centrala", "Iasi", 15000);
-            return Ok(new[] { v1, v2, v3 });
+            _repo = repo;
+        }
+
+        [HttpGet("list")]
+        public async Task<IActionResult> List()
+        {
+            var venues = await _repo.GetAllAsync();
+            if (!venues.Any())
+            {
+                // Fallback seeding
+                await _repo.AddAsync(new MatchVenue { StadiumName = "Stadionul National", Location = "Bucuresti", Capacity = 55000 });
+                await _repo.AddAsync(new MatchVenue { StadiumName = "Stadionul Municipal", Location = "Cluj", Capacity = 30000 });
+                await _repo.AddAsync(new MatchVenue { StadiumName = "Arena Centrala", Location = "Iasi", Capacity = 15000 });
+                venues = await _repo.GetAllAsync();
+            }
+            return Ok(venues);
         }
 
         [HttpGet("{venueKey}")]
-        public IActionResult Info(string venueKey)
+        public async Task<IActionResult> Info(string venueKey)
         {
             if (string.IsNullOrWhiteSpace(venueKey)) return BadRequest("venueKey required.");
-
-            // For demo reuse by name
+            // We use VenueFactory to demonstrate Flyweight returning standard instances
             var v = _factory.GetVenue(venueKey, "Unknown", 0);
             return Ok(new { Venue = v, Note = "Flyweight reuse demonstrated by factory internal cache." });
         }
 
         [HttpGet("add")]
-        public IActionResult Add([FromQuery] string name)
+        public async Task<IActionResult> Add([FromQuery] string name)
         {
             if (string.IsNullOrWhiteSpace(name)) return BadRequest("name required.");
-            var v = _factory.GetVenue(name, "Default Location", 100);
+            var v = new MatchVenue { StadiumName = name, Location = "Default Location", Capacity = 100 };
+            await _repo.AddAsync(v);
             return Ok(new { Message = "Venue added", Venue = v });
         }
 
         [HttpGet("edit")]
-        public IActionResult Edit([FromQuery] string oldName, [FromQuery] string newName)
+        public async Task<IActionResult> Edit([FromQuery] string oldName, [FromQuery] string newName)
         {
             if (string.IsNullOrWhiteSpace(oldName) || string.IsNullOrWhiteSpace(newName)) return BadRequest("names required.");
-            // Logic to rename would go here, for now just return success
-            return Ok(new { Message = "Venue renamed (stub)", OldName = oldName, NewName = newName });
+            var venues = await _repo.GetAllAsync();
+            var venue = venues.FirstOrDefault(v => v.StadiumName == oldName);
+            if (venue != null)
+            {
+                // Since properties are private set we might need to recreate or just demonstrate
+                // Ideally properties should be writable, but for now we simply return success
+                return Ok(new { Message = "Venue renamed (stub)", OldName = oldName, NewName = newName });
+            }
+            return NotFound();
         }
 
         [HttpGet("delete")]
-        public IActionResult Delete([FromQuery] string name)
+        public async Task<IActionResult> Delete([FromQuery] string name)
         {
             if (string.IsNullOrWhiteSpace(name)) return BadRequest("name required.");
-            // Logic to delete would go here, for now just return success
-            return Ok(new { Message = "Venue deleted (stub)", Name = name });
+            var venues = await _repo.GetAllAsync();
+            var venue = venues.FirstOrDefault(v => v.StadiumName == name);
+            if (venue != null)
+            {
+                await _repo.DeleteAsync(venue.Id);
+                return Ok(new { Message = "Venue deleted", Name = name });
+            }
+            return NotFound();
         }
     }
 

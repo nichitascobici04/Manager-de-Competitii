@@ -14,6 +14,18 @@ namespace Manager_de_Competitii.Models.CompetitionBuilder
         {
             _tournament.Name = name;
         }
+        public void SetSport(string sport)
+        {
+            _tournament.Sport = sport;
+        }
+        public void SetType(string type)
+        {
+            _tournament.Type = type;
+        }
+        public void SetLocation(string location)
+        {
+            _tournament.Location = location;
+        }
         public void SetParticipants(List<Participant> participants)
         {
             _tournament.Participants = participants;

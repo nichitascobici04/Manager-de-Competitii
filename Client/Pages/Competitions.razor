@@ -44,6 +44,30 @@
     <input id="organizerId" type="number" class="form-control" @bind="_organizerId" />
 </div>
 
+<div class="mb-3">
+    <label class="form-label">Participants</label>
+    <div class="border rounded p-2" style="max-height: 150px; overflow-y: auto;">
+        @if (_allParticipants != null && _allParticipants.Any())
+        {
+            @foreach (var p in _allParticipants)
+            {
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="part_@p.Name" 
+                           checked="@_selectedParticipants.Contains(p.Name)" 
+                           @onchange="@(e => ToggleParticipant(p.Name, e.Value))" />
+                    <label class="form-check-label" for="part_@p.Name">
+                        @p.Name (@p.Kind)
+                    </label>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="text-muted small">No participants found. Please add them in the Participants tab.</div>
+        }
+    </div>
+</div>
+
 <button class="btn btn-primary mb-3" @onclick="BuildAndCreate" disabled="@_loading">Build Competition</button>
 
 @if (_loading)
@@ -66,6 +90,8 @@
     string? _result;
     
     List<PatternApiClient.LocationDto> _locations = new();
+    List<PatternApiClient.ParticipantDto> _allParticipants = new();
+    List<string> _selectedParticipants = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -74,6 +100,23 @@
         {
             _locations = locations;
         }
+
+        var parts = await Api.ListParticipantsAsync();
+        if (parts != null)
+        {
+            _allParticipants = parts;
+        }
+    }
+
+    void ToggleParticipant(string name, object? isCheckedObj)
+    {
+        bool isChecked = false;
+        if (isCheckedObj is bool b) isChecked = b;
+
+        if (isChecked && !_selectedParticipants.Contains(name))
+            _selectedParticipants.Add(name);
+        else if (!isChecked && _selectedParticipants.Contains(name))
+            _selectedParticipants.Remove(name);
     }
 
     async Task BuildAndCreate()
@@ -82,7 +125,7 @@
         // The configure format is integrated inside the Build/Create process.
         await Api.ConfigureTournamentAsync(_type);
         
-        _result = await Api.BuildCompetitionAsync(_name, _sport, _type, _location, _organizerId);
+        _result = await Api.BuildCompetitionAsync(_name, _sport, _type, _location, _selectedParticipants.ToArray(), _organizerId);
         
         if (!string.IsNullOrEmpty(_result) && !_result.Contains("error", StringComparison.OrdinalIgnoreCase))
         {

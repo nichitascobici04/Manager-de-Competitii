@@ -1,0 +1,138 @@
+@page "/competition/{CompetitionId:int}"
+@using Client.Services
+@inject PatternApiClient Api
+
+<h2>View Competition</h2>
+
+@if (_competition == null)
+{
+    <LoadingSpinner />
+}
+else
+{
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white d-flex justify-content-between">
+            <h4 class="mb-0">@_competition.Name</h4>
+            <div>
+                <span class="badge bg-secondary me-2">@_competition.Sport</span>
+                <span class="badge @(_competition.Started ? "bg-success" : "bg-warning text-dark")">@(_competition.Started ? "Started" : "Not Started")</span>
+                <button class="btn btn-outline-light btn-sm ms-2" @onclick="Subscribe" disabled="@_subscribed">
+                    @(_subscribed ? "Subscribed" : "Subscribe")
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            @if (!_competition.Started)
+            {
+                <div class="alert alert-info">This competition has not been started. Start it to generate matches.</div>
+                <button class="btn btn-success" @onclick="StartCompetition" disabled="@_loading">Start Competition</button>
+            }
+            else
+            {
+                <div class="mb-3 d-flex justify-content-between">
+                    <h5 class="mb-0">Matches via Proxy</h5>
+                    <button class="btn btn-danger btn-sm" @onclick="FinishCompetition" disabled="@_loading">Finish Competition</button>
+                </div>
+
+                @if (_matches == null)
+                {
+                    <LoadingSpinner />
+                }
+                else if (!_matches.Matches.Any())
+                {
+                    <p class="text-muted">No matches available.</p>
+                }
+                else
+                {
+                    <ul class="list-group mb-3">
+                        @foreach (var m in _matches.Matches)
+                        {
+                            <li class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <strong>@m.Name</strong>
+                                    <span class="small text-muted">@m.Stadium</span>
+                                </div>
+                                <div class="row align-items-center">
+                                    <div class="col-md-5 text-end fw-bold">Participant 1</div>
+                                    <div class="col-md-2 text-center d-flex gap-1 justify-content-center">
+                                        @for (int i = 0; i < (_competition.Sport == "Tennis" ? 3 : 1); i++)
+                                        {
+                                            <input type="number" class="form-control form-control-sm text-center px-1" value="0" style="width: 40px;" />
+                                        }
+                                    </div>
+                                    <div class="col-md-5 fw-bold">Participant 2</div>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                    <button class="btn btn-primary" @onclick="SubmitScores" disabled="@_loading">Submit Scores</button>
+                }
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int CompetitionId { get; set; }
+
+    PatternApiClient.CompetitionDto? _competition;
+    PatternApiClient.IteratedMatchesDto? _matches;
+    bool _loading;
+    bool _subscribed;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCompetition();
+    }
+
+    async Task LoadCompetition()
+    {
+        var all = await Api.ListCompetitionsAsync();
+        _competition = all?.FirstOrDefault(c => c.Id == CompetitionId);
+
+        if (_competition != null && _competition.Started)
+        {
+            await LoadMatches();
+        }
+    }
+
+    async Task LoadMatches()
+    {
+        // Demonstrating Proxy pattern: Matches are lazy-loaded only when viewing the explicit Competition details page, via iterate endpoint acting as a proxy fetch.
+        _matches = await Api.IterateMatchesAsync(CompetitionId);
+        StateHasChanged();
+    }
+
+    async Task StartCompetition()
+    {
+        _loading = true;
+        // Demonstrating Command / Facade: Starts the competition and internally invokes rounds generator
+        await Api.StartCompetitionAsync(CompetitionId);
+        await LoadCompetition();
+        _loading = false;
+    }
+
+    async Task FinishCompetition()
+    {
+        _loading = true;
+        await Api.ExecuteCommandAsync("CancelMatch"); // Treating as Finish for demo
+        _competition!.Started = false; // Demo state flip
+        _loading = false;
+    }
+
+    async Task Subscribe()
+    {
+        _subscribed = true;
+        await Api.SubscribeLiveMatchAsync(CompetitionId); // Observer mock
+        await Api.SendNotificationAsync("info", $"You subscribed to {_competition?.Name} updates!");
+    }
+
+    async Task SubmitScores()
+    {
+        _loading = true;
+        await Task.Delay(500); // Mock processing
+        await Api.SendNotificationAsync("info", "Scores successfully submitted to the server!");
+        _loading = false;
+    }
+}

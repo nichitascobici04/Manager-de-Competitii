@@ -1,4 +1,6 @@
-﻿namespace Manager_de_Competitii.Interfaces.Api
+﻿using Microsoft.AspNetCore.Mvc;
+
+namespace Manager_de_Competitii.Interfaces.Api
 {
     // Creational
     public interface IAbstractFactoryApi
@@ -24,17 +26,17 @@
     // Structural
     public interface IFlyweightApi
     {
-        Task<string> GetVenueInfoAsync(string venueKey);
+        IActionResult GetVenueInfoAsync(string venueKey);
     }
 
     public interface IProxyApi
     {
-        Task<string> StartCompetitionAsync(int competitionId);
+        IActionResult StartCompetitionAsync(int competitionId);
     }
 
     public interface IBridgeApi
     {
-        Task<string> SendBridgeNotificationAsync(string channel, string message);
+        IActionResult SendBridgeNotificationAsync(string channel, string message);
     }
 
     public interface IFacadeApi
@@ -45,21 +47,21 @@
     // Behavioral
     public interface IIteratorApi
     {
-        Task<string> IterateMatchesAsync(int competitionId);
+        IActionResult IterateMatchesAsync(int competitionId);
     }
 
     public interface IObserverApi
     {
-        Task<string> SubscribeLiveMatchAsync(int matchId);
+        IActionResult SubscribeLiveMatchAsync(int matchId);
     }
 
     public interface ICommandApi
     {
-        Task<string> ExecuteCommandAsync(string commandName);
+        IActionResult ExecuteCommandAsync(string commandName);
     }
 
     public interface IStrategyApi
     {
-        Task<string> ApplyStrategyAsync(string strategyName);
+        IActionResult ApplyStrategyAsync(string strategyName);
     }
 }

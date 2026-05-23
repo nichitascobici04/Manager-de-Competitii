@@ -85,8 +85,12 @@
     async Task SendNotification()
     {
         _loading = true;
-        _notifResult = await Api.SendNotificationAsync(_channel, _message);
-        if (!string.IsNullOrEmpty(_notifResult)) _activityLog.Add($"Notification: {_notifResult}");
+        var notifResultJson = await Api.SendNotificationAsync(_channel, _message);
+        if (notifResultJson != null) 
+        {
+            _notifResult = notifResultJson.Value.TryGetProperty("Message", out var msg) ? msg.GetString() : "Success";
+            _activityLog.Add($"Notification: {_notifResult}");
+        }
         _loading = false;
     }
     async Task SendInvite()

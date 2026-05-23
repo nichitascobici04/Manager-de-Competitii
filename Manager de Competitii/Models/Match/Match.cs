@@ -1,6 +1,8 @@
 ﻿namespace Manager_de_Competitii.Models
 {
-    public class Match
+    using Manager_de_Competitii.Repositories;
+
+    public class Match : IEntity
     {
         public int Id { get; set; }
         public int TournamentId { get; set; }

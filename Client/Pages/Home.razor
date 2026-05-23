@@ -44,25 +44,7 @@
         </div>
     </div>
 
-    <div class="card shadow-sm mx-auto" style="max-width: 600px;">
-        <div class="card-header bg-light">
-            <h5 class="mb-0">⚙️ Advanced Settings</h5>
-        </div>
-        <div class="card-body">
-            <p class="text-muted small">Update the backend URL here if you deploy the app to a different environment.</p>
-            <div class="mb-3">
-                <label for="baseUrl" class="form-label fw-bold">API Base URL</label>
-                <div class="input-group">
-                    <input id="baseUrl" class="form-control" placeholder="https://..." @bind="_baseUrl" />
-                    <button class="btn btn-outline-primary" @onclick="Save">Save Settings</button>
-                </div>
-            </div>
-            @if (_saved)
-            {
-                <div class="alert alert-success mt-3 py-2 mb-0 text-center">Settings changed successfully!</div>
-            }
-        </div>
-    </div>
+
 </div>
 
 @code {

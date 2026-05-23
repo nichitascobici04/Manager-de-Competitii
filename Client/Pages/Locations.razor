@@ -34,7 +34,10 @@
                 {
                     <li class="list-group-item d-flex justify-content-between align-items-center">
                         <span class="fw-bold">@loc.Name</span>
-                        <button class="btn btn-danger btn-sm" @onclick="() => DeleteLocation(loc.Name)" disabled="@_loading">Delete</button>
+                        <div>
+                            <a class="btn btn-outline-info btn-sm me-2" href="/locations/@Uri.EscapeDataString(loc.Name)/matches">View Matches</a>
+                            <button class="btn btn-danger btn-sm" @onclick="() => DeleteLocation(loc.Name)" disabled="@_loading">Delete</button>
+                        </div>
                     </li>
                 }
             </ul>

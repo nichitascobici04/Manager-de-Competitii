@@ -7,9 +7,12 @@
         {
             _builder = builder;
         }
-        public void NameCompetition(string name)
+        public void BuildBasicInfo(string name, string sport, string type, string location)
         {
             _builder.SetName(name);
+            _builder.SetSport(sport);
+            _builder.SetType(type);
+            _builder.SetLocation(location);
         }
         public void AddParticipants(List<Participant> participants)
         {

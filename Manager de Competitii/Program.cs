@@ -4,6 +4,7 @@ using Manager_de_Competitii.Models.Flyweight;
 using Manager_de_Competitii.Models.Decorator;
 using Manager_de_Competitii.Models.Bridge;
 using Manager_de_Competitii.Services.Proxy;
+using Manager_de_Competitii.Services;
 using Manager_de_Competitii.Models.Strategy;
 using Manager_de_Competitii.Models.Observer;
 using Manager_de_Competitii.Models.Command;
@@ -18,6 +19,22 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// DI for Patterns
+builder.Services.AddSingleton<IMessageSender, EmailSender>();
+builder.Services.AddSingleton<ICompetitionManager>(sp => new CompetitionManagerProxy("Organizer"));
+builder.Services.AddTransient<CommandInvoker>();
+builder.Services.AddTransient<CompetitionFacade>();
+
+// DI for Persistence File Repositories
+builder.Services.AddSingleton<Manager_de_Competitii.Repositories.IRepository<Competition>>(
+    new Manager_de_Competitii.Repositories.FileRepository<Competition>("competitions.json"));
+builder.Services.AddSingleton<Manager_de_Competitii.Repositories.IRepository<Participant>>(
+    new Manager_de_Competitii.Repositories.FileRepository<Participant>("participants.json"));
+builder.Services.AddSingleton<Manager_de_Competitii.Repositories.IRepository<MatchVenue>>(
+    new Manager_de_Competitii.Repositories.FileRepository<MatchVenue>("locations.json"));
+builder.Services.AddSingleton<Manager_de_Competitii.Repositories.IRepository<Manager_de_Competitii.Models.Match>>(
+    new Manager_de_Competitii.Repositories.FileRepository<Manager_de_Competitii.Models.Match>("matches.json"));
 
 var app = builder.Build();
 

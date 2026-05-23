@@ -54,12 +54,13 @@
     async Task Poll()
     {
         if (!_subscribed) return;
-        var ev = await Api.SubscribeLiveMatchAsync(_matchId);
-        if (!string.IsNullOrEmpty(ev))
+        var evJson = await Api.SubscribeLiveMatchAsync(_matchId);
+        if (evJson != null && evJson.Value.TryGetProperty("Message", out var msg))
         {
-            _events.Insert(0, $"[{DateTime.Now:T}] {ev}");
+            var msgStr = msg.GetString();
+            _events.Insert(0, $"[{DateTime.Now:T}] {msgStr}");
             if (_events.Count > 10) _events.RemoveAt(_events.Count - 1);
-            InvokeAsync(StateHasChanged);
+            await InvokeAsync(StateHasChanged);
         }
     }
     void Unsubscribe()

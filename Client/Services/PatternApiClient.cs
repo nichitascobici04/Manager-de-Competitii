@@ -108,8 +108,13 @@ namespace Client.Services
         // Creational
         public Task<string?> ConfigureTournamentAsync(string type) => GetAsync<string>($"tournaments/configure?tournamentType={Uri.EscapeDataString(type)}");
         public Task<string?> GenerateRoundsAsync(string type) => GetAsync<string>($"rounds/generate?roundsType={Uri.EscapeDataString(type)}");
-        public Task<string?> BuildCompetitionAsync(string name, string sport, string type, string location, int organizerId = 0) 
-            => GetAsync<string>($"builder/build?name={Uri.EscapeDataString(name)}&sport={Uri.EscapeDataString(sport)}&type={Uri.EscapeDataString(type)}&location={Uri.EscapeDataString(location)}&organizerId={organizerId}");
+        public Task<string?> BuildCompetitionAsync(string name, string sport, string type, string location, string[] participants, int organizerId = 0) 
+        {
+            var pQuery = participants != null && participants.Length > 0 
+                ? "&" + string.Join("&", participants.Select(p => $"participants={Uri.EscapeDataString(p)}"))
+                : "";
+            return GetAsync<string>($"builder/build?name={Uri.EscapeDataString(name)}&sport={Uri.EscapeDataString(sport)}&type={Uri.EscapeDataString(type)}&location={Uri.EscapeDataString(location)}&organizerId={organizerId}{pQuery}");
+        }
         public Task<string?> CreateParticipantAsync(string kind, string name) => GetAsync<string>($"participants/create?kind={Uri.EscapeDataString(kind)}&name={Uri.EscapeDataString(name)}");
 
         public Task<List<ParticipantDto>?> ListParticipantsAsync() => GetAsync<List<ParticipantDto>>("participants/list");
@@ -121,22 +126,27 @@ namespace Client.Services
         public Task<string?> AttachParticipantAsync(int compId, string pName) => GetAsync<string>($"competitions/participant?compId={compId}&participantName={Uri.EscapeDataString(pName)}");
 
         // Structural
-        public Task<string?> GetVenueInfoAsync(string key) => GetAsync<string>($"venues/info?venueKey={Uri.EscapeDataString(key)}");
+        public Task<string?> GetVenueInfoAsync(string key) => GetAsync<string>($"flyweight/venue?venueKey={Uri.EscapeDataString(key)}");
         public Task<List<LocationDto>?> ListLocationsAsync() => GetAsync<List<LocationDto>>("venues/list");
         public Task<string?> AddVenueAsync(string name) => GetAsync<string>($"venues/add?name={Uri.EscapeDataString(name)}");
         public Task<string?> DeleteVenueAsync(string name) => GetAsync<string>($"venues/delete?name={Uri.EscapeDataString(name)}");
         public Task<string?> EditVenueAsync(string oldName, string newName) => GetAsync<string>($"venues/edit?oldName={Uri.EscapeDataString(oldName)}&newName={Uri.EscapeDataString(newName)}");
-        public Task<string?> StartCompetitionAsync(int id) => GetAsync<string>($"proxy/start?competitionId={id}");
-        public Task<string?> SendNotificationAsync(string channel, string message) => GetAsync<string>($"notifications/send?channel={Uri.EscapeDataString(channel)}&message={Uri.EscapeDataString(message)}");
+        
+        public async Task<JsonElement?> StartCompetitionAsync(int id) => await GetAsync<JsonElement>($"proxy/start?competitionId={id}");
+        public async Task<JsonElement?> SendNotificationAsync(string channel, string message) => await GetAsync<JsonElement>($"bridge/notify?channel={Uri.EscapeDataString(channel)}&message={Uri.EscapeDataString(message)}");
+        public async Task<JsonElement?> StartFacadeAsync(int organizerId) => await GetAsync<JsonElement>($"facade/start?organizerId={organizerId}");
+        public async Task<JsonElement?> DuplicateCompetitionAsync(int compId) => await GetAsync<JsonElement>($"prototype/clone?id={compId}");
+
         public Task<string?> SendInviteAsync(string tournament, string channel) => GetAsync<string>($"notifications/send-invite?tournament={Uri.EscapeDataString(tournament)}&channel={Uri.EscapeDataString(channel)}");
         public Task<string?> SendResultAsync(int matchId, string channel) => GetAsync<string>($"notifications/send-result?matchId={matchId}&channel={Uri.EscapeDataString(channel)}");
         public Task<List<MatchDto>?> ListMatchesAsync() => GetAsync<List<MatchDto>>("matches/list");
 
         // Behavioral
-        public Task<IteratedMatchesDto?> IterateMatchesAsync(int competitionId) => GetAsync<IteratedMatchesDto>($"matches/iterate?competitionId={competitionId}");
-        public Task<string?> SubscribeLiveMatchAsync(int matchId) => GetAsync<string>($"matches/subscribe-live?matchId={matchId}");
-        public Task<string?> ExecuteCommandAsync(string commandName) => GetAsync<string>($"commands/execute?commandName={Uri.EscapeDataString(commandName)}");
-        public Task<string?> ApplyStrategyAsync(string strategyName) => GetAsync<string>($"strategies/apply?strategyName={Uri.EscapeDataString(strategyName)}");
+        public Task<IteratedMatchesDto?> IterateMatchesAsync(int competitionId, string stadium = null) 
+            => GetAsync<IteratedMatchesDto>($"matches/iterate?competitionId={competitionId}&stadium={Uri.EscapeDataString(stadium ?? string.Empty)}");
+        public async Task<JsonElement?> SubscribeLiveMatchAsync(int matchId) => await GetAsync<JsonElement>($"observer/subscribe?matchId={matchId}");
+        public async Task<JsonElement?> ExecuteCommandAsync(string commandName) => await GetAsync<JsonElement>($"command/execute?commandName={Uri.EscapeDataString(commandName)}");
+        public async Task<JsonElement?> ApplyStrategyAsync(string strategyName) => await GetAsync<JsonElement>($"strategy/apply?strategyName={Uri.EscapeDataString(strategyName)}");
     }
 
     public class RequestLogService

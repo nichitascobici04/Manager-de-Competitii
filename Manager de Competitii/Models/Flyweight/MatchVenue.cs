@@ -1,10 +1,15 @@
 namespace Manager_de_Competitii.Models.Flyweight
 {
-    public class MatchVenue
+    using Manager_de_Competitii.Repositories;
+
+    public class MatchVenue : IEntity
     {
-        public string StadiumName { get; }
-        public string Location { get; }
-        public int Capacity { get; }
+        public int Id { get; set; }
+        public string StadiumName { get; set; }
+        public string Location { get; set; }
+        public int Capacity { get; set; }
+
+        public MatchVenue() { }
 
         public MatchVenue(string stadiumName, string location, int capacity)
         {
