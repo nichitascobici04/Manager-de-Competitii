@@ -3,7 +3,7 @@
 @using Client.Services
 @inject PatternApiClient Api
 @inject NavigationManager Nav
-@inject IJSRuntime JS
+@inject StorageService Storage
 
 <PageTitle>Dashboards</PageTitle>
 
@@ -57,6 +57,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // PatternApiClient already initialized in Program.cs with saved/default base URL
         _baseUrl = Api.BaseUrl;
         
         var stats = await Api.GetStatsAsync();
@@ -71,7 +72,7 @@
     async Task Save()
     {
         Api.SetBaseUrl(_baseUrl);
-        await JS.InvokeVoidAsync("localStorage.setItem", "apiBaseUrl", _baseUrl);
+        await Storage.Save("apiBaseUrl", _baseUrl);
         _saved = true;
     }
 }

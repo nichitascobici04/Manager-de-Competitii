@@ -11,7 +11,22 @@ using Manager_de_Competitii.Models.Command;
 using Manager_de_Competitii.Models.Memento;
 using Manager_de_Competitii.Models.Iterator;
 
+
 var builder = WebApplication.CreateBuilder(args);
+
+var devCorsPolicy = "_devCorsPolicy";
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(devCorsPolicy, policy =>
+    {
+        // permissive for development: allow all origins, methods and headers
+        // in production lock this down to the exact client origin(s)
+        policy.AllowAnyHeader()
+              .AllowAnyMethod()
+              .SetIsOriginAllowed(_ => true)
+              .AllowCredentials();
+    });
+});
 
 // Add services to the container.
 
@@ -37,6 +52,9 @@ builder.Services.AddSingleton<Manager_de_Competitii.Repositories.IRepository<Man
     new Manager_de_Competitii.Repositories.FileRepository<Manager_de_Competitii.Models.Match>("matches.json"));
 
 var app = builder.Build();
+
+// Use CORS policy before mapping controllers
+app.UseCors(devCorsPolicy);
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
