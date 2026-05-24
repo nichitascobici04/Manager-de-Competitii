@@ -1,0 +1,15 @@
+[
+  {
+    "Id": 1,
+    "Name": "test",
+    "Type": "Knockout",
+    "Sport": "Football",
+    "Location": "Stadionul Municipal",
+    "ParticipantCount": 0,
+    "Organizer": null,
+    "Participants": [],
+    "Winner": null,
+    "Stages": null,
+    "IsCompleted": true
+  }
+]

@@ -330,7 +330,7 @@ namespace Manager_de_Competitii.Controllers
             public string Name { get; set; } = "";
         }
 
-        [HttpPost("create")]
+        [HttpGet("create")]
         public async Task<IActionResult> Create([FromQuery] string kind, [FromQuery] string name)
         {
             if (string.IsNullOrWhiteSpace(kind) || string.IsNullOrWhiteSpace(name))
