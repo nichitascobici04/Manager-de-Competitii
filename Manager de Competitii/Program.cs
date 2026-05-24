@@ -12,7 +12,6 @@ using Manager_de_Competitii.Models.Memento;
 using Manager_de_Competitii.Models.Iterator;
 using Manager_de_Competitii.Models.Notifications;
 
-
 var builder = WebApplication.CreateBuilder(args);
 
 var devCorsPolicy = "_devCorsPolicy";
@@ -22,7 +21,8 @@ builder.Services.AddCors(options =>
     {
         // permissive for development: allow all origins, methods and headers
         // in production lock this down to the exact client origin(s)
-        policy.AllowAnyHeader()
+        policy.WithOrigins("http://localhost:5000", "https://localhost:5001") // example local origins
+              .AllowAnyHeader()
               .AllowAnyMethod()
               .SetIsOriginAllowed(_ => true)
               .AllowCredentials();
@@ -35,6 +35,8 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddRazorPages();
+builder.Services.AddControllersWithViews();
 
 // DI for Patterns
 builder.Services.AddSingleton<IMessageSender, EmailSender>();
@@ -57,7 +59,12 @@ builder.Services.AddSingleton<Manager_de_Competitii.Repositories.IRepository<Com
 var app = builder.Build();
 
 // Use CORS policy before mapping controllers
+app.UseRouting();
 app.UseCors(devCorsPolicy);
+app.UseAuthorization();
+
+app.UseBlazorFrameworkFiles();
+app.UseStaticFiles();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -247,11 +254,6 @@ while (stadiumIterator.HasNext())
 Console.WriteLine("============================\n");
 #endregion
 
-app.UseBlazorFrameworkFiles();
-app.UseStaticFiles();
-
-app.MapControllers();
 
 app.MapFallbackToFile("index.html");
-
 app.Run();
