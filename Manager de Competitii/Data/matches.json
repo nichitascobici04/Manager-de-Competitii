@@ -20,5 +20,27 @@
       0,
       0
     ]
+  },
+  {
+    "Id": 2,
+    "TournamentId": 4,
+    "Name": "ion (Copy) vs jucator (Copy)",
+    "Location": "Stadionul National",
+    "Sport": "Tennis",
+    "IsCompleted": true,
+    "IsDrawAllowed": false,
+    "Participant1Name": "ion (Copy)",
+    "Participant2Name": "jucator (Copy)",
+    "WinnerName": "ion (Copy)",
+    "Scores1": [
+      3,
+      5,
+      3
+    ],
+    "Scores2": [
+      19,
+      3,
+      3
+    ]
   }
 ]

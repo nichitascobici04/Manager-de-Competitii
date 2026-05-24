@@ -11,7 +11,7 @@
     "Winner": null,
     "Stages": null,
     "IsCompleted": true,
-    "IsFinished": false
+    "IsFinished": true
   },
   {
     "Id": 2,
@@ -43,5 +43,67 @@
     "Stages": null,
     "IsCompleted": true,
     "IsFinished": false
+  },
+  {
+    "Id": 3,
+    "Name": "test 2",
+    "Type": "Knockout",
+    "Sport": "Tennis",
+    "Location": "Stadionul National",
+    "ParticipantCount": 0,
+    "Organizer": null,
+    "Participants": [
+      {
+        "Id": 0,
+        "TournamentId": 0,
+        "Name": "ion",
+        "IsBye": false,
+        "IsUser": false,
+        "AssociatedUser": null
+      },
+      {
+        "Id": 0,
+        "TournamentId": 0,
+        "Name": "jucator",
+        "IsBye": false,
+        "IsUser": false,
+        "AssociatedUser": null
+      }
+    ],
+    "Winner": null,
+    "Stages": null,
+    "IsCompleted": false,
+    "IsFinished": false
+  },
+  {
+    "Id": 4,
+    "Name": "test 2 (Copy)",
+    "Type": "Knockout",
+    "Sport": "Tennis",
+    "Location": "Stadionul National",
+    "ParticipantCount": 0,
+    "Organizer": null,
+    "Participants": [
+      {
+        "Id": 0,
+        "TournamentId": 0,
+        "Name": "ion (Copy)",
+        "IsBye": false,
+        "IsUser": false,
+        "AssociatedUser": null
+      },
+      {
+        "Id": 0,
+        "TournamentId": 0,
+        "Name": "jucator (Copy)",
+        "IsBye": false,
+        "IsUser": false,
+        "AssociatedUser": null
+      }
+    ],
+    "Winner": null,
+    "Stages": null,
+    "IsCompleted": true,
+    "IsFinished": true
   }
 ]

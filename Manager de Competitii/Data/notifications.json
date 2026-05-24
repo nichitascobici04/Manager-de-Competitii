@@ -1,0 +1,12 @@
+[
+  {
+    "Id": 1,
+    "Type": "invite",
+    "Channel": "email",
+    "Message": "Invitation to join: test Result",
+    "Target": "test Result",
+    "Timestamp": "2026-05-24T02:40:39.1781588Z",
+    "IsRead": false,
+    "CompetitionId": null
+  }
+]
