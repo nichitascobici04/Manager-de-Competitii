@@ -10,6 +10,38 @@
     "Participants": [],
     "Winner": null,
     "Stages": null,
-    "IsCompleted": true
+    "IsCompleted": true,
+    "IsFinished": false
+  },
+  {
+    "Id": 2,
+    "Name": "Name",
+    "Type": "Knockout",
+    "Sport": "Tennis",
+    "Location": "Stadionul National",
+    "ParticipantCount": 0,
+    "Organizer": null,
+    "Participants": [
+      {
+        "Id": 0,
+        "TournamentId": 0,
+        "Name": "ye",
+        "IsBye": false,
+        "IsUser": false,
+        "AssociatedUser": null
+      },
+      {
+        "Id": 0,
+        "TournamentId": 0,
+        "Name": "ion",
+        "IsBye": false,
+        "IsUser": false,
+        "AssociatedUser": null
+      }
+    ],
+    "Winner": null,
+    "Stages": null,
+    "IsCompleted": true,
+    "IsFinished": false
   }
 ]

@@ -96,14 +96,16 @@
     async Task SendInvite()
     {
         _loading2 = true;
-        _inviteResult = await Api.SendInviteAsync(_inviteTournament, _inviteChannel);
+        var r = await Api.SendInviteAsync(_inviteTournament, _inviteChannel);
+        _inviteResult = r.HasValue && r.Value.TryGetProperty("message", out var m) ? m.GetString() : "Invite sent";
         if (!string.IsNullOrEmpty(_inviteResult)) _activityLog.Add($"Invite: {_inviteResult}");
         _loading2 = false;
     }
     async Task SendResult()
     {
         _loading3 = true;
-        _resultResult = await Api.SendResultAsync(_resultMatchId, _resultChannel);
+        var r = await Api.SendResultAsync(_resultMatchId, _resultChannel);
+        _resultResult = r.HasValue && r.Value.TryGetProperty("message", out var m) ? m.GetString() : "Result sent";
         if (!string.IsNullOrEmpty(_resultResult)) _activityLog.Add($"Result: {_resultResult}");
         _loading3 = false;
     }

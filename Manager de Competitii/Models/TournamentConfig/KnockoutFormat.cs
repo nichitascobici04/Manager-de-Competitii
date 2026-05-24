@@ -1,28 +1,27 @@
-﻿namespace Manager_de_Competitii.Models.AbstractFactory
+namespace Manager_de_Competitii.Models.AbstractFactory
 {
-    public class KnockoutFormat: IFormat
+    public class KnockoutFormat : IFormat
     {
         public List<Stage> GenerateStages(List<Participant> participants)
         {
-            List<Stage> stages = new List<Stage>();
-
-            // Stages generation for Knockout format
-            for (int i = 0; i < participants.Count; i += 2)
+            var stages = new List<Stage>();
+            for (int i = 0; i + 1 < participants.Count; i += 2)
             {
-                Stage stage = new Stage
+                stages.Add(new Stage
                 {
                     Name = $"Round {i / 2 + 1}",
                     Matches = new List<Match>
                     {
                         new Match
                         {
-                            Participant1 = participants[i],
-                            Participant2 = participants[i + 1],
-                            IsDrawAllowed = false
+                            Participant1Name = participants[i].Name ?? "",
+                            Participant2Name = participants[i + 1].Name ?? "",
+                            IsDrawAllowed = false,
+                            Scores1 = new List<int>(),
+                            Scores2 = new List<int>()
                         }
                     }
-                };
-                stages.Add(stage);
+                });
             }
             return stages;
         }

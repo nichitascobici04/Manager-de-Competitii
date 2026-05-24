@@ -1,15 +1,15 @@
-﻿namespace Manager_de_Competitii.Models.AbstractFactory
+namespace Manager_de_Competitii.Models.AbstractFactory
 {
-    public class RoundRobinMatchType: IMatchType
+    public class RoundRobinMatchType : IMatchType
     {
         public Match GenerateMatch()
         {
-            Match RrMatch = new Match
+            return new Match
             {
                 IsDrawAllowed = true,
-                Sets = new List<MatchSet>(),
+                Scores1 = new List<int>(),
+                Scores2 = new List<int>()
             };
-            return RrMatch;
         }
     }
 }

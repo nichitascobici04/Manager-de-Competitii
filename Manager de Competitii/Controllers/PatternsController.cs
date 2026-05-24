@@ -17,6 +17,7 @@ using Manager_de_Competitii.Models.Command;
 using Manager_de_Competitii.Services;
 using Manager_de_Competitii.Services.Proxy;
 using Manager_de_Competitii.Models.Strategy;
+using Manager_de_Competitii.Models.Notifications;
 
 namespace Manager_de_Competitii.Controllers
 {
@@ -35,6 +36,7 @@ namespace Manager_de_Competitii.Controllers
             public string Type { get; set; } = "Knockout";
             public string Location { get; set; } = "";
             public bool Started { get; set; } = false;
+            public bool Finished { get; set; } = false;
             public List<string> Participants { get; set; } = new();
 
             public object Clone()
@@ -224,6 +226,8 @@ namespace Manager_de_Competitii.Controllers
     {
         private readonly Manager_de_Competitii.Repositories.IRepository<Competition> _repo;
 
+        public static List<(int CompId, string CompName)> _subscriptions = new();
+
         public CompetitionsController(Manager_de_Competitii.Repositories.IRepository<Competition> repo)
         {
             _repo = repo;
@@ -236,10 +240,12 @@ namespace Manager_de_Competitii.Controllers
             var dtos = comps.Select(c => new PatternsController.CompetitionDto {
                 Id = c.Id,
                 Name = c.Name,
-                Sport = c.Type, // we store Sport in Type or we can map it accordingly
+                Sport = c.Sport,
                 Type = c.Type,
+                Location = c.Location,
                 Participants = c.Participants?.Select(p => p.Name).ToList() ?? new List<string>(),
-                Started = c.IsCompleted
+                Started = c.IsCompleted,
+                Finished = c.IsFinished
             });
             return Ok(dtos);
         }
@@ -286,6 +292,92 @@ namespace Manager_de_Competitii.Controllers
                 return Ok(new { Message = "Participant attached" });
             }
             return NotFound("Competition not found");
+        }
+
+        [HttpGet("start")]
+        public async Task<IActionResult> Start(
+            [FromQuery] int id,
+            [FromServices] Manager_de_Competitii.Repositories.IRepository<Manager_de_Competitii.Models.Match> matchRepo)
+        {
+            var comp = await _repo.GetByIdAsync(id);
+            if (comp == null) return NotFound("Competition not found");
+
+            comp.IsCompleted = true;
+            await _repo.UpdateAsync(comp.Id, comp);
+
+            var participants = comp.Participants ?? new List<Participant>();
+            var matches = GenerateMatches(comp, participants);
+
+            var existing = await matchRepo.GetAllAsync();
+            foreach (var m in existing.Where(m => m.TournamentId == id).ToList())
+                await matchRepo.DeleteAsync(m.Id);
+
+            foreach (var m in matches)
+                await matchRepo.AddAsync(m);
+
+            return Ok(new { Message = "Competition started via Command & Facade (Abstract Factory match generation)", MatchCount = matches.Count });
+        }
+
+        [HttpGet("finish")]
+        public async Task<IActionResult> Finish([FromQuery] int id)
+        {
+            var comp = await _repo.GetByIdAsync(id);
+            if (comp == null) return NotFound("Competition not found");
+            comp.IsFinished = true;
+            await _repo.UpdateAsync(comp.Id, comp);
+            return Ok(new { Message = "Competition finished via Command pattern", CompetitionId = id });
+        }
+
+        [HttpGet("subscribe")]
+        public async Task<IActionResult> Subscribe([FromQuery] int id)
+        {
+            var comp = await _repo.GetByIdAsync(id);
+            if (comp == null) return NotFound("Competition not found");
+            if (!_subscriptions.Any(s => s.CompId == id))
+                _subscriptions.Add((id, comp.Name ?? ""));
+            return Ok(new { Message = "Subscribed via Observer pattern", CompetitionId = id, CompetitionName = comp.Name });
+        }
+
+        [HttpGet("subscriptions")]
+        public IActionResult GetSubscriptions()
+        {
+            return Ok(_subscriptions.Select(s => new { s.CompId, s.CompName }));
+        }
+
+        private static List<Manager_de_Competitii.Models.Match> GenerateMatches(Competition comp, List<Participant> participants)
+        {
+            var matches = new List<Manager_de_Competitii.Models.Match>();
+            int scoreCount = comp.Sport?.Equals("Tennis", StringComparison.OrdinalIgnoreCase) == true ? 3 : 1;
+            bool isDrawAllowed = comp.Sport?.Equals("Tennis", StringComparison.OrdinalIgnoreCase) != true;
+
+            if (comp.Type?.Equals("Round-robin", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                for (int i = 0; i < participants.Count; i++)
+                    for (int j = i + 1; j < participants.Count; j++)
+                        matches.Add(CreateMatch(comp, participants[i], participants[j], scoreCount, isDrawAllowed));
+            }
+            else
+            {
+                for (int i = 0; i + 1 < participants.Count; i += 2)
+                    matches.Add(CreateMatch(comp, participants[i], participants[i + 1], scoreCount, isDrawAllowed));
+            }
+            return matches;
+        }
+
+        private static Manager_de_Competitii.Models.Match CreateMatch(Competition comp, Participant p1, Participant p2, int scoreCount, bool isDrawAllowed)
+        {
+            return new Manager_de_Competitii.Models.Match
+            {
+                TournamentId = comp.Id,
+                Name = $"{p1.Name} vs {p2.Name}",
+                Location = comp.Location ?? "",
+                Sport = comp.Sport ?? "Football",
+                Participant1Name = p1.Name,
+                Participant2Name = p2.Name,
+                IsDrawAllowed = isDrawAllowed,
+                Scores1 = Enumerable.Repeat(0, scoreCount).ToList(),
+                Scores2 = Enumerable.Repeat(0, scoreCount).ToList()
+            };
         }
     }
 
@@ -418,9 +510,9 @@ namespace Manager_de_Competitii.Controllers
             var venue = venues.FirstOrDefault(v => v.StadiumName == oldName);
             if (venue != null)
             {
-                // Since properties are private set we might need to recreate or just demonstrate
-                // Ideally properties should be writable, but for now we simply return success
-                return Ok(new { Message = "Venue renamed (stub)", OldName = oldName, NewName = newName });
+                venue.StadiumName = newName;
+                await _repo.UpdateAsync(venue.Id, venue);
+                return Ok(new { Message = "Venue renamed", OldName = oldName, NewName = newName });
             }
             return NotFound();
         }
@@ -444,21 +536,68 @@ namespace Manager_de_Competitii.Controllers
     [Route("api/[controller]")]
     public class NotificationsController : ControllerBase
     {
-        public static int _notificationsCount = 0;
+        private readonly Manager_de_Competitii.Repositories.IRepository<CompNotification> _repo;
+
+        public NotificationsController(Manager_de_Competitii.Repositories.IRepository<CompNotification> repo)
+        {
+            _repo = repo;
+        }
+
+        [HttpGet("list")]
+        public async Task<IActionResult> List()
+        {
+            var all = await _repo.GetAllAsync();
+            return Ok(all.OrderByDescending(n => n.Timestamp));
+        }
+
+        [HttpGet("send-invite")]
+        public async Task<IActionResult> SendInvite([FromQuery] string tournament, [FromQuery] string channel = "email")
+        {
+            IMessageSender sender = channel.Equals("sms", StringComparison.OrdinalIgnoreCase)
+                ? new SmsSender() : (IMessageSender)new EmailSender();
+            new InviteNotification(sender).Notify(tournament, $"You are invited to join {tournament}!");
+
+            await _repo.AddAsync(new CompNotification
+            {
+                Type = "invite", Channel = channel,
+                Message = $"Invitation to join: {tournament}",
+                Target = tournament, Timestamp = DateTime.UtcNow
+            });
+            return Ok(new { Message = $"Invite sent via {channel} (Bridge pattern)", Tournament = tournament });
+        }
+
+        [HttpGet("send-result")]
+        public async Task<IActionResult> SendResult([FromQuery] int matchId, [FromQuery] string result = "", [FromQuery] string channel = "email")
+        {
+            IMessageSender sender = channel.Equals("sms", StringComparison.OrdinalIgnoreCase)
+                ? new SmsSender() : (IMessageSender)new EmailSender();
+            new MatchResultNotification(sender).Notify($"Match {matchId}", result);
+
+            await _repo.AddAsync(new CompNotification
+            {
+                Type = "result", Channel = channel,
+                Message = $"Match {matchId} result: {result}",
+                Target = $"Match {matchId}", Timestamp = DateTime.UtcNow
+            });
+            return Ok(new { Message = $"Result sent via {channel} (Bridge pattern)", MatchId = matchId });
+        }
 
         [HttpPost("send")]
-        public IActionResult Send([FromBody] NotificationRequest req)
+        public async Task<IActionResult> Send([FromBody] NotificationRequest req)
         {
             if (req == null || string.IsNullOrWhiteSpace(req.Channel) || string.IsNullOrWhiteSpace(req.Message))
                 return BadRequest("channel and message required.");
 
-            IMessageSender sender = req.Channel.Equals("sms", System.StringComparison.OrdinalIgnoreCase)
-                ? new SmsSender()
-                : (IMessageSender)new EmailSender();
+            IMessageSender sender = req.Channel.Equals("sms", StringComparison.OrdinalIgnoreCase)
+                ? new SmsSender() : (IMessageSender)new EmailSender();
+            new InviteNotification(sender).Notify(req.Target ?? "All", req.Message);
 
-            var notification = new InviteNotification(sender);
-            notification.Notify(req.Target ?? "All", req.Message);
-            _notificationsCount++;
+            await _repo.AddAsync(new CompNotification
+            {
+                Type = "general", Channel = req.Channel,
+                Message = req.Message, Target = req.Target ?? "All",
+                Timestamp = DateTime.UtcNow
+            });
             return Ok(new { Message = $"Sent via {req.Channel}", Channel = req.Channel, Payload = req.Message });
         }
 
@@ -469,14 +608,91 @@ namespace Manager_de_Competitii.Controllers
     [Route("api/[controller]")]
     public class MatchesController : ControllerBase
     {
-        [HttpGet("list")]
-        public IActionResult List()
+        private readonly Manager_de_Competitii.Repositories.IRepository<Manager_de_Competitii.Models.Match> _repo;
+
+        public MatchesController(Manager_de_Competitii.Repositories.IRepository<Manager_de_Competitii.Models.Match> repo)
         {
-            return Ok(new[] { 
-                new { Id = 1, Name = "Final Match: Team A vs Team B", CompetitionId = 1, CompetitionName = "Champions Cup" },
-                new { Id = 2, Name = "Semi-final: Team C vs Team D", CompetitionId = 1, CompetitionName = "Champions Cup" },
-                new { Id = 3, Name = "Friendly Match: Team E vs Team F", CompetitionId = 2, CompetitionName = "Summer Friendly" }
-            });
+            _repo = repo;
+        }
+
+        [HttpGet("list")]
+        public async Task<IActionResult> List()
+        {
+            var all = await _repo.GetAllAsync();
+            return Ok(all);
+        }
+
+        [HttpGet("byCompetition")]
+        public async Task<IActionResult> ByCompetition([FromQuery] int competitionId)
+        {
+            var all = await _repo.GetAllAsync();
+            return Ok(all.Where(m => m.TournamentId == competitionId).ToList());
+        }
+
+        [HttpGet("byLocation")]
+        public async Task<IActionResult> ByLocation([FromQuery] string location)
+        {
+            if (string.IsNullOrWhiteSpace(location)) return BadRequest("location required.");
+            var all = await _repo.GetAllAsync();
+            return Ok(all.Where(m => m.Location.Equals(location, StringComparison.OrdinalIgnoreCase)).ToList());
+        }
+
+        [HttpGet("score")]
+        public async Task<IActionResult> Score(
+            [FromQuery] int matchId,
+            [FromQuery] int[] scores1,
+            [FromQuery] int[] scores2,
+            [FromServices] Manager_de_Competitii.Repositories.IRepository<CompNotification> notifRepo)
+        {
+            var match = await _repo.GetByIdAsync(matchId);
+            if (match == null) return NotFound("Match not found");
+
+            match.Scores1 = scores1.ToList();
+            match.Scores2 = scores2.ToList();
+            match.IsCompleted = true;
+            match.WinnerName = DetermineWinner(match);
+            await _repo.UpdateAsync(match.Id, match);
+
+            if (CompetitionsController._subscriptions.Any(s => s.CompId == match.TournamentId))
+            {
+                IMessageSender sender = new EmailSender();
+                var notif = new MatchResultNotification(sender);
+                notif.Notify(match.Name, $"{match.WinnerName} wins!");
+
+                await notifRepo.AddAsync(new CompNotification
+                {
+                    Type = "result",
+                    Channel = "email",
+                    Message = $"{match.Name}: {string.Join("-", match.Scores1)} vs {string.Join("-", match.Scores2)} | Winner: {match.WinnerName}",
+                    Target = match.Name,
+                    Timestamp = DateTime.UtcNow,
+                    CompetitionId = match.TournamentId
+                });
+            }
+
+            return Ok(new { Message = "Score updated via Strategy pattern", Winner = match.WinnerName, MatchId = matchId });
+        }
+
+        private static string DetermineWinner(Manager_de_Competitii.Models.Match match)
+        {
+            if (match.Sport?.Equals("Tennis", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                int sets1 = 0, sets2 = 0;
+                for (int i = 0; i < match.Scores1.Count && i < match.Scores2.Count; i++)
+                {
+                    if (match.Scores1[i] > match.Scores2[i]) sets1++;
+                    else if (match.Scores2[i] > match.Scores1[i]) sets2++;
+                }
+                return sets1 >= sets2 ? (match.Participant1Name.Length > 0 ? match.Participant1Name : "P1")
+                                      : (match.Participant2Name.Length > 0 ? match.Participant2Name : "P2");
+            }
+            else
+            {
+                int t1 = match.Scores1.Sum(), t2 = match.Scores2.Sum();
+                if (t1 > t2) return match.Participant1Name.Length > 0 ? match.Participant1Name : "P1";
+                if (t2 > t1) return match.Participant2Name.Length > 0 ? match.Participant2Name : "P2";
+                return "Draw";
+            }
         }
 
         [HttpGet("iterate")]
@@ -492,12 +708,9 @@ namespace Manager_de_Competitii.Controllers
                 var it = schedule.CreateStadiumIterator(stadium);
                 var items = new List<ScheduledMatch>();
                 while (it.HasNext())
-                {
                     items.Add(it.Next());
-                }
                 return Ok(new { CompetitionId = competitionId, Stadium = stadium, Matches = items });
             }
-
             return Ok(new { CompetitionId = competitionId, Matches = schedule.GetItems() });
         }
     }
@@ -600,13 +813,30 @@ namespace Manager_de_Competitii.Controllers
     [Route("api/[controller]")]
     public class StatsController : ControllerBase
     {
-        [HttpGet]
-        public IActionResult GetStats()
+        private readonly Manager_de_Competitii.Repositories.IRepository<Competition> _compRepo;
+        private readonly Manager_de_Competitii.Repositories.IRepository<Manager_de_Competitii.Models.Match> _matchRepo;
+        private readonly Manager_de_Competitii.Repositories.IRepository<CompNotification> _notifRepo;
+
+        public StatsController(
+            Manager_de_Competitii.Repositories.IRepository<Competition> compRepo,
+            Manager_de_Competitii.Repositories.IRepository<Manager_de_Competitii.Models.Match> matchRepo,
+            Manager_de_Competitii.Repositories.IRepository<CompNotification> notifRepo)
         {
-            return Ok(new { 
-                Competitions = PatternsController._competitionsCount, 
-                Matches = 3, // based on the stub items length
-                Notifications = NotificationsController._notificationsCount 
+            _compRepo = compRepo;
+            _matchRepo = matchRepo;
+            _notifRepo = notifRepo;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetStats()
+        {
+            var comps = await _compRepo.GetAllAsync();
+            var matches = await _matchRepo.GetAllAsync();
+            var notifs = await _notifRepo.GetAllAsync();
+            return Ok(new {
+                Competitions = comps.Count,
+                Matches = matches.Count,
+                Notifications = notifs.Count
             });
         }
     }

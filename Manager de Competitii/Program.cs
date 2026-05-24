@@ -10,6 +10,7 @@ using Manager_de_Competitii.Models.Observer;
 using Manager_de_Competitii.Models.Command;
 using Manager_de_Competitii.Models.Memento;
 using Manager_de_Competitii.Models.Iterator;
+using Manager_de_Competitii.Models.Notifications;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -50,6 +51,8 @@ builder.Services.AddSingleton<Manager_de_Competitii.Repositories.IRepository<Mat
     new Manager_de_Competitii.Repositories.FileRepository<MatchVenue>("locations.json"));
 builder.Services.AddSingleton<Manager_de_Competitii.Repositories.IRepository<Manager_de_Competitii.Models.Match>>(
     new Manager_de_Competitii.Repositories.FileRepository<Manager_de_Competitii.Models.Match>("matches.json"));
+builder.Services.AddSingleton<Manager_de_Competitii.Repositories.IRepository<CompNotification>>(
+    new Manager_de_Competitii.Repositories.FileRepository<CompNotification>("notifications.json"));
 
 var app = builder.Build();
 

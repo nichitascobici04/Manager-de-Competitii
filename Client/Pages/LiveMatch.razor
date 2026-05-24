@@ -1,6 +1,5 @@
 @page "/livematch"
 @using Client.Services
-@using Client.Models
 @inject PatternApiClient Api
 
 <h2>Live Match</h2>
@@ -40,7 +39,7 @@
     bool _subscribed;
     List<string> _events = new();
     System.Threading.Timer? _timer;
-    List<MatchDto>? _matches;
+    List<Client.Models.MatchDto>? _matches;
     protected override async Task OnInitializedAsync()
     {
         _matches = await Api.ListMatchesAsync();

@@ -2,137 +2,329 @@
 @using Client.Services
 @inject PatternApiClient Api
 
-<h2>View Competition</h2>
+<PageTitle>@(_competition?.Name ?? "Competition")</PageTitle>
 
 @if (_competition == null)
 {
-    <LoadingSpinner />
+    <div class="text-center py-5"><LoadingSpinner /></div>
 }
 else
 {
-    <div class="card mb-4">
-        <div class="card-header bg-dark text-white d-flex justify-content-between">
-            <h4 class="mb-0">@_competition.Name</h4>
-            <div>
-                <span class="badge bg-secondary me-2">@_competition.Sport</span>
-                <span class="badge @(_competition.Started ? "bg-success" : "bg-warning text-dark")">@(_competition.Started ? "Started" : "Not Started")</span>
-                <button class="btn btn-outline-light btn-sm ms-2" @onclick="Subscribe" disabled="@_subscribed">
-                    @(_subscribed ? "Subscribed" : "Subscribe")
-                </button>
+    <div class="card mb-4 border-0 shadow-sm">
+        <div class="card-header bg-dark text-white">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h4 class="mb-0">@_competition.Name</h4>
+                <div class="d-flex gap-2 align-items-center flex-wrap">
+                    <span class="badge bg-primary">@_competition.Sport</span>
+                    <span class="badge bg-secondary">@_competition.Type</span>
+                    @if (!string.IsNullOrEmpty(_competition.Location))
+                    {
+                        <span class="badge bg-light text-dark">📍 @_competition.Location</span>
+                    }
+                    @if (_competition.Finished)
+                    {
+                        <span class="badge bg-success">Finished</span>
+                    }
+                    else if (_competition.Started)
+                    {
+                        <span class="badge bg-warning text-dark">In Progress</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-info">Not Started</span>
+                    }
+                    <button class="btn @(_subscribed ? "btn-outline-light" : "btn-light") btn-sm"
+                            @onclick="Subscribe" disabled="@_subscribed">
+                        @(_subscribed ? "✓ Subscribed (Observer)" : "Subscribe")
+                    </button>
+                </div>
             </div>
         </div>
-        <div class="card-body">
-            @if (!_competition.Started)
-            {
-                <div class="alert alert-info">This competition has not been started. Start it to generate matches.</div>
-                <button class="btn btn-success" @onclick="StartCompetition" disabled="@_loading">Start Competition</button>
-            }
-            else
-            {
-                <div class="mb-3 d-flex justify-content-between">
-                    <h5 class="mb-0">Matches via Proxy</h5>
-                    <button class="btn btn-danger btn-sm" @onclick="FinishCompetition" disabled="@_loading">Finish Competition</button>
-                </div>
-
-                @if (_matches == null)
-                {
-                    <LoadingSpinner />
-                }
-                else if (!_matches.Matches.Any())
-                {
-                    <p class="text-muted">No matches available.</p>
-                }
-                else
-                {
-                    <ul class="list-group mb-3">
-                        @foreach (var m in _matches.Matches)
-                        {
-                            <li class="list-group-item">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <strong>@m.Name</strong>
-                                    <span class="small text-muted">@m.Stadium</span>
-                                </div>
-                                <div class="row align-items-center">
-                                    <div class="col-md-5 text-end fw-bold">Participant 1</div>
-                                    <div class="col-md-2 text-center d-flex gap-1 justify-content-center">
-                                        @for (int i = 0; i < (_competition.Sport == "Tennis" ? 3 : 1); i++)
-                                        {
-                                            <input type="number" class="form-control form-control-sm text-center px-1" value="0" style="width: 40px;" />
-                                        }
-                                    </div>
-                                    <div class="col-md-5 fw-bold">Participant 2</div>
-                                </div>
-                            </li>
-                        }
-                    </ul>
-                    <button class="btn btn-primary" @onclick="SubmitScores" disabled="@_loading">Submit Scores</button>
-                }
-            }
-        </div>
     </div>
+
+    @if (!string.IsNullOrEmpty(_message))
+    {
+        <div class="alert alert-success alert-dismissible mb-3">
+            @_message
+            <button type="button" class="btn-close" @onclick="() => _message = string.Empty"></button>
+        </div>
+    }
+
+    @if (!_competition.Started)
+    {
+        <div class="alert alert-info mb-3">
+            <strong>Competition not started yet.</strong>
+            Make sure participants are added, then press Start to generate all matches automatically.
+        </div>
+        @if (_competition.Participants.Any())
+        {
+            <div class="mb-3">
+                <h6 class="text-muted">Registered Participants (@_competition.Participants.Count)</h6>
+                <div class="d-flex flex-wrap gap-2">
+                    @foreach (var p in _competition.Participants)
+                    {
+                        <span class="badge bg-secondary fs-6 px-3 py-2">@p</span>
+                    }
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-warning mb-3">No participants attached yet. Go to the Manager page to add them.</div>
+        }
+        <button class="btn btn-success btn-lg" @onclick="StartCompetition" disabled="@(_loading || !_competition.Participants.Any())">
+            @(_loading ? "Starting..." : "▶ Start Competition (Command + Facade)")
+        </button>
+    }
+    else if (_competition.Finished)
+    {
+        <div class="alert alert-success mb-3">
+            <strong>Competition finished!</strong> Final results are shown below.
+        </div>
+        <h5 class="mb-3">Results</h5>
+        @RenderMatches(isReadonly: true)
+    }
+    else
+    {
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0">Matches <small class="text-muted fs-6">(Proxy lazy-load)</small></h5>
+            <button class="btn btn-danger" @onclick="FinishCompetition" disabled="@_loading">
+                @(_loading ? "Finishing..." : "⏹ Finish Competition (Command)")
+            </button>
+        </div>
+        @if (_matches == null)
+        {
+            <LoadingSpinner />
+        }
+        else if (!_matches.Any())
+        {
+            <p class="text-muted">No matches generated. Try restarting the competition.</p>
+        }
+        else
+        {
+            @RenderMatches(isReadonly: false)
+        }
+    }
 }
 
 @code {
-    [Parameter]
-    public int CompetitionId { get; set; }
+    [Parameter] public int CompetitionId { get; set; }
 
     PatternApiClient.CompetitionDto? _competition;
-    PatternApiClient.IteratedMatchesDto? _matches;
+    List<PatternApiClient.MatchDetailDto>? _matches;
     bool _loading;
     bool _subscribed;
+    string _message = "";
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadCompetition();
-    }
+    Dictionary<int, List<int>> _pendingScores1 = new();
+    Dictionary<int, List<int>> _pendingScores2 = new();
 
-    async Task LoadCompetition()
+    protected override async Task OnInitializedAsync() => await Load();
+
+    async Task Load()
     {
         var all = await Api.ListCompetitionsAsync();
         _competition = all?.FirstOrDefault(c => c.Id == CompetitionId);
-
-        if (_competition != null && _competition.Started)
-        {
-            await LoadMatches();
-        }
-    }
-
-    async Task LoadMatches()
-    {
-        // Demonstrating Proxy pattern: Matches are lazy-loaded only when viewing the explicit Competition details page, via iterate endpoint acting as a proxy fetch.
-        _matches = await Api.IterateMatchesAsync(CompetitionId);
-        StateHasChanged();
+        if (_competition?.Started == true)
+            _matches = await Api.GetMatchesByCompetitionAsync(CompetitionId);
     }
 
     async Task StartCompetition()
     {
         _loading = true;
-        // Demonstrating Command / Facade: Starts the competition and internally invokes rounds generator
         await Api.StartCompetitionAsync(CompetitionId);
-        await LoadCompetition();
+        await Load();
         _loading = false;
     }
 
     async Task FinishCompetition()
     {
         _loading = true;
-        await Api.ExecuteCommandAsync("CancelMatch"); // Treating as Finish for demo
-        _competition!.Started = false; // Demo state flip
+        await Api.FinishCompetitionAsync(CompetitionId);
+        if (_competition != null) _competition.Finished = true;
+        _message = "Competition finished!";
         _loading = false;
     }
 
     async Task Subscribe()
     {
         _subscribed = true;
-        await Api.SubscribeLiveMatchAsync(CompetitionId); // Observer mock
-        await Api.SendNotificationAsync("info", $"You subscribed to {_competition?.Name} updates!");
+        await Api.SubscribeToCompetitionAsync(CompetitionId);
+        _message = $"Subscribed to {_competition?.Name}! You will receive match result notifications.";
     }
 
-    async Task SubmitScores()
+    async Task SubmitScore(PatternApiClient.MatchDetailDto match)
     {
         _loading = true;
-        await Task.Delay(500); // Mock processing
-        await Api.SendNotificationAsync("info", "Scores successfully submitted to the server!");
+        var s1 = _pendingScores1.TryGetValue(match.Id, out var ps1) ? ps1 : new List<int>(match.Scores1);
+        var s2 = _pendingScores2.TryGetValue(match.Id, out var ps2) ? ps2 : new List<int>(match.Scores2);
+        var result = await Api.SubmitMatchScoreAsync(match.Id, s1.ToArray(), s2.ToArray());
+        if (result != null)
+        {
+            match.Scores1 = s1;
+            match.Scores2 = s2;
+            match.IsCompleted = true;
+            try { match.WinnerName = result.Value.GetProperty("winner").GetString() ?? ""; } catch { }
+            _message = $"Score saved! Winner: {match.WinnerName}";
+        }
         _loading = false;
     }
+
+    int GetS1(int matchId, int idx)
+    {
+        if (_pendingScores1.TryGetValue(matchId, out var s) && s.Count > idx) return s[idx];
+        var m = _matches?.FirstOrDefault(m => m.Id == matchId);
+        return m != null && m.Scores1.Count > idx ? m.Scores1[idx] : 0;
+    }
+
+    int GetS2(int matchId, int idx)
+    {
+        if (_pendingScores2.TryGetValue(matchId, out var s) && s.Count > idx) return s[idx];
+        var m = _matches?.FirstOrDefault(m => m.Id == matchId);
+        return m != null && m.Scores2.Count > idx ? m.Scores2[idx] : 0;
+    }
+
+    void SetS1(int matchId, int idx, object? val)
+    {
+        if (!_pendingScores1.ContainsKey(matchId))
+        {
+            var m = _matches?.FirstOrDefault(m => m.Id == matchId);
+            _pendingScores1[matchId] = m != null ? new List<int>(m.Scores1) : new List<int>();
+        }
+        while (_pendingScores1[matchId].Count <= idx) _pendingScores1[matchId].Add(0);
+        if (int.TryParse(val?.ToString(), out int v)) _pendingScores1[matchId][idx] = Math.Max(0, v);
+    }
+
+    void SetS2(int matchId, int idx, object? val)
+    {
+        if (!_pendingScores2.ContainsKey(matchId))
+        {
+            var m = _matches?.FirstOrDefault(m => m.Id == matchId);
+            _pendingScores2[matchId] = m != null ? new List<int>(m.Scores2) : new List<int>();
+        }
+        while (_pendingScores2[matchId].Count <= idx) _pendingScores2[matchId].Add(0);
+        if (int.TryParse(val?.ToString(), out int v)) _pendingScores2[matchId][idx] = Math.Max(0, v);
+    }
+
+    RenderFragment RenderMatches(bool isReadonly) => __builder =>
+    {
+        if (_matches == null) return;
+        foreach (var match in _matches)
+        {
+            bool isTennis = _competition?.Sport?.Equals("Tennis", StringComparison.OrdinalIgnoreCase) == true;
+            bool canEdit = !isReadonly && !match.IsCompleted;
+
+            <div class="card mb-3 shadow-sm @(match.IsCompleted ? "border-success" : "")">
+                <div class="card-header d-flex justify-content-between align-items-center py-2 bg-light">
+                    <span class="fw-bold">@match.Name</span>
+                    <div class="d-flex gap-2 align-items-center">
+                        @if (!string.IsNullOrEmpty(match.Location))
+                        {
+                            <small class="text-muted">@match.Location</small>
+                        }
+                        @if (match.IsCompleted)
+                        {
+                            <span class="badge bg-success">Winner: @match.WinnerName</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Pending</span>
+                        }
+                    </div>
+                </div>
+                <div class="card-body py-3">
+                    @if (isTennis)
+                    {
+                        <table class="table table-sm table-bordered mb-2">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Participant</th>
+                                    <th class="text-center">Set 1</th>
+                                    <th class="text-center">Set 2</th>
+                                    <th class="text-center">Set 3</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="fw-bold align-middle">@match.Participant1Name</td>
+                                    @for (int si = 0; si < 3; si++)
+                                    {
+                                        int capturedIdx = si;
+                                        int capturedId = match.Id;
+                                        <td class="text-center" style="width:80px">
+                                            @if (canEdit)
+                                            {
+                                                <input type="number" min="0" class="form-control form-control-sm text-center"
+                                                       value="@GetS1(capturedId, capturedIdx)"
+                                                       @oninput="e => SetS1(capturedId, capturedIdx, e.Value)" />
+                                            }
+                                            else
+                                            {
+                                                <span>@(match.Scores1.Count > capturedIdx ? match.Scores1[capturedIdx] : 0)</span>
+                                            }
+                                        </td>
+                                    }
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold align-middle">@match.Participant2Name</td>
+                                    @for (int si = 0; si < 3; si++)
+                                    {
+                                        int capturedIdx = si;
+                                        int capturedId = match.Id;
+                                        <td class="text-center" style="width:80px">
+                                            @if (canEdit)
+                                            {
+                                                <input type="number" min="0" class="form-control form-control-sm text-center"
+                                                       value="@GetS2(capturedId, capturedIdx)"
+                                                       @oninput="e => SetS2(capturedId, capturedIdx, e.Value)" />
+                                            }
+                                            else
+                                            {
+                                                <span>@(match.Scores2.Count > capturedIdx ? match.Scores2[capturedIdx] : 0)</span>
+                                            }
+                                        </td>
+                                    }
+                                </tr>
+                            </tbody>
+                        </table>
+                        <small class="text-muted">Tennis — Strategy: winner wins 2+ sets</small>
+                    }
+                    else
+                    {
+                        <div class="d-flex align-items-center justify-content-center gap-3 py-1">
+                            <span class="fw-bold fs-5 flex-fill text-end">@match.Participant1Name</span>
+                            @if (canEdit)
+                            {
+                                int capturedId = match.Id;
+                                <input type="number" min="0" class="form-control text-center" style="width:70px"
+                                       value="@GetS1(capturedId, 0)"
+                                       @oninput="e => SetS1(capturedId, 0, e.Value)" />
+                                <span class="text-muted fw-bold">—</span>
+                                <input type="number" min="0" class="form-control text-center" style="width:70px"
+                                       value="@GetS2(capturedId, 0)"
+                                       @oninput="e => SetS2(capturedId, 0, e.Value)" />
+                            }
+                            else
+                            {
+                                <span class="fs-3 fw-bold px-2">@(match.Scores1.Count > 0 ? match.Scores1[0] : 0)</span>
+                                <span class="text-muted">—</span>
+                                <span class="fs-3 fw-bold px-2">@(match.Scores2.Count > 0 ? match.Scores2[0] : 0)</span>
+                            }
+                            <span class="fw-bold fs-5 flex-fill">@match.Participant2Name</span>
+                        </div>
+                        <div class="text-center mt-1"><small class="text-muted">Football — Strategy: higher score wins</small></div>
+                    }
+                    @if (canEdit)
+                    {
+                        var capturedMatch = match;
+                        <div class="mt-2 text-end">
+                            <button class="btn btn-primary btn-sm" @onclick="() => SubmitScore(capturedMatch)" disabled="@_loading">
+                                Submit Score (Strategy)
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    };
 }

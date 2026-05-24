@@ -2,49 +2,116 @@
 @using Client.Services
 @inject PatternApiClient Api
 
-<h2>Matches at @Uri.UnescapeDataString(VenueName ?? "")</h2>
+<PageTitle>Matches at @_displayName</PageTitle>
 
-@if (_matches == null)
-{
-    <LoadingSpinner />
-}
-else if (!_matches.Any())
-{
-    <div class="alert alert-secondary">No matches scheduled at this location yet.</div>
-}
-else
-{
-    <ul class="list-group">
-        @foreach (var m in _matches)
-        {
-            <li class="list-group-item d-flex justify-content-between">
-                <span>@m.Name</span>
-                <span class="text-muted small">@m.Stadium</span>
-            </li>
-        }
-    </ul>
-}
-
-<div class="mt-4">
-    <a href="/locations" class="btn btn-secondary">Back to Locations</a>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">📍 @_displayName</h2>
+    <a href="/locations" class="btn btn-outline-secondary btn-sm">← Back to Locations</a>
 </div>
 
-@code {
-    [Parameter]
-    public string VenueName { get; set; } = "";
-
-    List<PatternApiClient.MatchItemDto>? _matches;
-
-    protected override async Task OnInitializedAsync()
-    {
-        var resp = await Api.IterateMatchesAsync(0, Uri.UnescapeDataString(VenueName));
-        if (resp != null && resp.Matches != null)
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-light fw-bold">Edit Location Name <small class="text-muted">(Iterator pattern)</small></div>
+    <div class="card-body">
+        <div class="input-group" style="max-width:400px">
+            <input class="form-control" placeholder="New name" @bind="_newName" @bind:event="oninput" />
+            <button class="btn btn-primary" @onclick="SaveName" disabled="@(string.IsNullOrWhiteSpace(_newName) || _newName == _displayName || _saving)">
+                @(_saving ? "Saving..." : "Save")
+            </button>
+        </div>
+        @if (!string.IsNullOrEmpty(_saveMessage))
         {
-            _matches = resp.Matches;
+            <div class="mt-2 text-success small">@_saveMessage</div>
+        }
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-dark text-white fw-bold">
+        Matches played here
+        @if (_matches != null)
+        {
+            <span class="badge bg-secondary ms-2">@_matches.Count</span>
+        }
+    </div>
+    <div class="card-body p-0">
+        @if (_matches == null)
+        {
+            <div class="p-3"><LoadingSpinner /></div>
+        }
+        else if (!_matches.Any())
+        {
+            <div class="p-3 text-muted">No matches have been played at this location yet.</div>
         }
         else
         {
-            _matches = new List<PatternApiClient.MatchItemDto>();
+            <div class="list-group list-group-flush">
+                @foreach (var m in _matches)
+                {
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="fw-bold">@m.Name</div>
+                                <small class="text-muted">@m.Sport · @(m.IsCompleted ? "Completed" : "Pending")</small>
+                            </div>
+                            @if (m.IsCompleted)
+                            {
+                                <div class="text-end">
+                                    @if (m.Sport?.Equals("Tennis", StringComparison.OrdinalIgnoreCase) == true)
+                                    {
+                                        <div class="d-flex gap-2">
+                                            @for (int i = 0; i < m.Scores1.Count; i++)
+                                            {
+                                                int idx = i;
+                                                <span class="badge bg-light text-dark border">
+                                                    @m.Scores1[idx]–@m.Scores2[idx]
+                                                </span>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="fs-5 fw-bold">@(m.Scores1.Count > 0 ? m.Scores1[0] : 0) – @(m.Scores2.Count > 0 ? m.Scores2[0] : 0)</span>
+                                    }
+                                    <div><small class="badge bg-success">Winner: @m.WinnerName</small></div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
         }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string VenueName { get; set; } = "";
+
+    string _displayName = "";
+    string _newName = "";
+    string _saveMessage = "";
+    bool _saving;
+
+    List<PatternApiClient.MatchDetailDto>? _matches;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _displayName = Uri.UnescapeDataString(VenueName ?? "");
+        _newName = _displayName;
+        await LoadMatches();
+    }
+
+    async Task LoadMatches()
+    {
+        _matches = await Api.GetMatchesByLocationAsync(_displayName);
+    }
+
+    async Task SaveName()
+    {
+        if (string.IsNullOrWhiteSpace(_newName) || _newName == _displayName) return;
+        _saving = true;
+        await Api.EditVenueAsync(_displayName, _newName);
+        _saveMessage = $"Renamed to \"{_newName}\"";
+        _displayName = _newName;
+        _saving = false;
     }
 }

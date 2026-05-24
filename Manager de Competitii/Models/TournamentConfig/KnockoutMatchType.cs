@@ -1,15 +1,15 @@
-﻿namespace Manager_de_Competitii.Models.AbstractFactory
+namespace Manager_de_Competitii.Models.AbstractFactory
 {
-    public class KnockoutMatchType: IMatchType
+    public class KnockoutMatchType : IMatchType
     {
         public Match GenerateMatch()
         {
-            Match KoMatch = new Match
+            return new Match
             {
                 IsDrawAllowed = false,
-                Sets = new List<MatchSet>(),
-            };  
-            return KoMatch;
+                Scores1 = new List<int>(),
+                Scores2 = new List<int>()
+            };
         }
     }
 }

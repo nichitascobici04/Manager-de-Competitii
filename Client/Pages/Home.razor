@@ -1,28 +1,29 @@
-﻿@page "/"
+@page "/"
 @page "/Home"
 @using Client.Services
 @inject PatternApiClient Api
 @inject NavigationManager Nav
 @inject StorageService Storage
 
-<PageTitle>Dashboards</PageTitle>
+<PageTitle>Dashboard</PageTitle>
 
 <div class="container py-4">
     <h1 class="mb-4 text-center">Dashboard</h1>
+
     <div class="row g-3 mb-4 justify-content-center">
         <div class="col-12 col-md-4">
             <div class="card text-center shadow-sm">
                 <div class="card-body">
                     <h5 class="card-title text-muted">Competitions</h5>
-                    <p class="display-5 fw-bold text-primary">@_competitions</p>
+                    <p class="display-5 fw-bold text-primary">@_stats?.Competitions</p>
                 </div>
             </div>
         </div>
         <div class="col-12 col-md-4">
             <div class="card text-center shadow-sm">
                 <div class="card-body">
-                    <h5 class="card-title text-muted">Upcoming Matches</h5>
-                    <p class="display-5 fw-bold text-success">@_matches</p>
+                    <h5 class="card-title text-muted">Matches</h5>
+                    <p class="display-5 fw-bold text-success">@_stats?.Matches</p>
                 </div>
             </div>
         </div>
@@ -30,49 +31,142 @@
             <div class="card text-center shadow-sm">
                 <div class="card-body">
                     <h5 class="card-title text-muted">Notifications</h5>
-                    <p class="display-5 fw-bold text-info">@_notifications</p>
+                    <p class="display-5 fw-bold text-info">@_stats?.Notifications</p>
                 </div>
             </div>
         </div>
     </div>
+
     <div class="row justify-content-center mb-5">
         <div class="col-12 col-md-4 text-center">
             <a class="btn btn-primary w-100 mb-2 shadow-sm" href="/competitions">Build Competition</a>
         </div>
         <div class="col-12 col-md-4 text-center">
-            <a class="btn btn-info w-100 mb-2 text-white shadow-sm" href="/notifications">Send Notification</a>
+            <a class="btn btn-info w-100 mb-2 text-white shadow-sm" href="/manager">Manage Competitions</a>
         </div>
     </div>
 
+    <div class="row g-4">
+        <div class="col-12 col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-warning text-dark fw-bold">
+                    Send Notification (Bridge Pattern)
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-3">
+                        Bridge decouples notification type (invite / result) from delivery channel (email / phone).
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Tournament / Target</label>
+                        <input class="form-control" placeholder="e.g. Champions Cup" @bind="_notifTarget" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Channel</label>
+                        <select class="form-select" @bind="_notifChannel">
+                            <option value="email">Email</option>
+                            <option value="sms">Phone (SMS)</option>
+                        </select>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-primary flex-fill" @onclick="SendInvite" disabled="@(string.IsNullOrWhiteSpace(_notifTarget) || _notifBusy)">
+                            Send Invite
+                        </button>
+                        <button class="btn btn-outline-success flex-fill" @onclick="SendResult" disabled="@(string.IsNullOrWhiteSpace(_notifTarget) || _notifBusy)">
+                            Send Result
+                        </button>
+                    </div>
+                    @if (!string.IsNullOrEmpty(_notifMessage))
+                    {
+                        <div class="alert alert-success mt-3 py-2">@_notifMessage</div>
+                    }
+                </div>
+            </div>
+        </div>
 
+        <div class="col-12 col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-info text-white fw-bold d-flex justify-content-between align-items-center">
+                    <span>Notifications (Observer)</span>
+                    <button class="btn btn-sm btn-outline-light" @onclick="LoadNotifications">↻ Refresh</button>
+                </div>
+                <div class="card-body p-0" style="max-height:380px; overflow-y:auto">
+                    @if (_notifications == null)
+                    {
+                        <div class="p-3"><LoadingSpinner /></div>
+                    }
+                    else if (!_notifications.Any())
+                    {
+                        <div class="p-3 text-muted">No notifications yet. Subscribe to a competition or send one above.</div>
+                    }
+                    else
+                    {
+                        <ul class="list-group list-group-flush">
+                            @foreach (var n in _notifications)
+                            {
+                                string badgeClass = n.Type switch
+                                {
+                                    "invite" => "bg-primary",
+                                    "result" => "bg-success",
+                                    _ => "bg-secondary"
+                                };
+                                string icon = n.Channel == "sms" ? "📱" : "📧";
+                                <li class="list-group-item py-2">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <span class="badge @badgeClass me-1">@n.Type</span>
+                                            <span class="small">@icon @n.Channel</span>
+                                            <div class="mt-1">@n.Message</div>
+                                        </div>
+                                        <small class="text-muted ms-2 text-nowrap">@n.Timestamp.ToLocalTime().ToString("HH:mm")</small>
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 @code {
-    int _competitions = 0;
-    int _matches = 0;
-    int _notifications = 0;
-    
-    string _baseUrl = "";
-    bool _saved;
+    PatternApiClient.StatsDto? _stats;
+    List<PatternApiClient.NotificationDto>? _notifications;
+
+    string _notifTarget = "";
+    string _notifChannel = "email";
+    string _notifMessage = "";
+    bool _notifBusy;
 
     protected override async Task OnInitializedAsync()
     {
-        // PatternApiClient already initialized in Program.cs with saved/default base URL
-        _baseUrl = Api.BaseUrl;
-        
-        var stats = await Api.GetStatsAsync();
-        if (stats != null)
-        {
-            _competitions = stats.Competitions;
-            _matches = stats.Matches;
-            _notifications = stats.Notifications;
-        }
+        _stats = await Api.GetStatsAsync();
+        await LoadNotifications();
     }
 
-    async Task Save()
+    async Task LoadNotifications()
     {
-        Api.SetBaseUrl(_baseUrl);
-        await Storage.Save("apiBaseUrl", _baseUrl);
-        _saved = true;
+        _notifications = await Api.ListNotificationsAsync();
+        _stats = await Api.GetStatsAsync();
+    }
+
+    async Task SendInvite()
+    {
+        if (string.IsNullOrWhiteSpace(_notifTarget)) return;
+        _notifBusy = true;
+        await Api.SendInviteAsync(_notifTarget, _notifChannel);
+        _notifMessage = $"Invite sent via {_notifChannel} to \"{_notifTarget}\"!";
+        await LoadNotifications();
+        _notifBusy = false;
+    }
+
+    async Task SendResult()
+    {
+        if (string.IsNullOrWhiteSpace(_notifTarget)) return;
+        _notifBusy = true;
+        await Api.SendInviteAsync(_notifTarget + " Result", _notifChannel);
+        _notifMessage = $"Result notification sent via {_notifChannel}!";
+        await LoadNotifications();
+        _notifBusy = false;
     }
 }

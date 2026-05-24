@@ -1,0 +1,18 @@
+[
+  {
+    "Id": 1,
+    "TournamentId": 0,
+    "Name": "ye",
+    "IsBye": false,
+    "IsUser": true,
+    "AssociatedUser": null
+  },
+  {
+    "Id": 2,
+    "TournamentId": 0,
+    "Name": "ion",
+    "IsBye": false,
+    "IsUser": true,
+    "AssociatedUser": null
+  }
+]

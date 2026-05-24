@@ -1,0 +1,24 @@
+[
+  {
+    "Id": 1,
+    "TournamentId": 2,
+    "Name": "ye vs ion",
+    "Location": "Stadionul National",
+    "Sport": "Tennis",
+    "IsCompleted": false,
+    "IsDrawAllowed": false,
+    "Participant1Name": "ye",
+    "Participant2Name": "ion",
+    "WinnerName": "",
+    "Scores1": [
+      0,
+      0,
+      0
+    ],
+    "Scores2": [
+      0,
+      0,
+      0
+    ]
+  }
+]
